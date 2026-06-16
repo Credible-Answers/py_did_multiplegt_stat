@@ -1,0 +1,138 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "did-multiplegt-stat"
+version = "0.1.0"
+description = "Heterogeneity-robust difference-in-differences (DID) estimators (AS, WAS, IV-WAS) with stayers, for binary, discrete, or continuous treatments. Python port of the Stata `did_multiplegt_stat` package."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "Clément de Chaisemartin", email = "chaisemartin.packages@gmail.com" },
+    { name = "Diego Ciccia" },
+    { name = "Xavier D'Haultfœuille" },
+    { name = "Felix Knau" },
+    { name = "Felix Pasquier" },
+    { name = "Doulo Sow" },
+    { name = "Gonzalo Vazquez-Bare" },
+    { name = "Anzony Quispe", email = "anzony.quispe@gmail.com" },
+]
+maintainers = [
+    { name = "chaisemartin.packages", email = "chaisemartin.packages@gmail.com" },
+]
+keywords = [
+    "difference-in-differences",
+    "DiD",
+    "econometrics",
+    "causal-inference",
+    "panel-data",
+    "treatment-effects",
+    "stata",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "statsmodels>=0.14",
+    "patsy>=0.5",
+    "matplotlib>=3.7",
+    "scikit-learn>=1.3",
+]
+
+[project.optional-dependencies]
+linearmodels = ["linearmodels>=5.0"]
+econtools = ["econtools"]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+    "ruff>=0.5",
+    "mypy>=1.8",
+    "pre-commit>=3.5",
+    "build",
+    "twine",
+]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
+    "mkdocs-jupyter>=0.24",
+    "pymdown-extensions>=10",
+]
+all = [
+    "linearmodels>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/chaisemartin/did_multiplegt_stat"
+Documentation = "https://chaisemartin.github.io/did_multiplegt_stat/"
+Repository = "https://github.com/chaisemartin/did_multiplegt_stat"
+Issues = "https://github.com/chaisemartin/did_multiplegt_stat/issues"
+Changelog = "https://github.com/chaisemartin/did_multiplegt_stat/blob/main/CHANGELOG.md"
+"Stata package" = "https://chaisemartin.github.io/did_multiplegt_stat/"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/did_multiplegt_stat"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/CITATION.cff",
+    "/pyproject.toml",
+]
+exclude = [
+    "**/*.ipynb_checkpoints",
+    "**/__pycache__",
+    "**/.DS_Store",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::RuntimeWarning",
+]
+markers = [
+    "slow: marks tests that take more than a few seconds",
+    "parity: marks tests that check Stata numerical parity",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["docs", "stataADO"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "E741", "B008"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+no_implicit_optional = false
+
+[[tool.mypy.overrides]]
+module = "did_multiplegt_stat.*"
+ignore_errors = true

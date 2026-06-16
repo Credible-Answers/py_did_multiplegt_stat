@@ -7,7 +7,8 @@ mimicking the output format of the original did_multiplegt_stat.ado.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, List
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -33,7 +34,7 @@ def _fmt_float5(x) -> str:
     return f"{float(x):.5f}"
 
 
-def mat_print(mat, name: Optional[str] = None) -> None:
+def mat_print(mat, name: str | None = None) -> None:
     """
     Pretty-print a matrix with floats (7 chars) and integers.
 
@@ -107,16 +108,16 @@ def strdisplay(label: str, value) -> None:
 def print_header(
     N: int,
     estimation_method: str,
-    estimator_list: List[str],
-    order: Optional[int] = None,
+    estimator_list: list[str],
+    order: int | None = None,
     exact_match: bool = False,
     noextrapolation: bool = False,
-    controls: Optional[List[str]] = None,
+    controls: list[str] | None = None,
     cross_fitting: int = 0,
     trimming: float = 0,
-    n_clusters: Optional[int] = None,
-    cluster: Optional[str] = None,
-    by_level: Optional[str] = None,
+    n_clusters: int | None = None,
+    cluster: str | None = None,
+    by_level: str | None = None,
 ) -> None:
     """
     Print the summary statistics header.
@@ -184,7 +185,7 @@ def print_header(
 def print_estimator_section(
     estimator: str,
     table: pd.DataFrame,
-    estims_map: Dict[str, int],
+    estims_map: dict[str, int],
     pairs: int,
     disaggregate: bool = False,
 ) -> None:
@@ -217,8 +218,8 @@ def print_estimator_section(
 
 def print_placebo_section(
     estimator: str,
-    placebo_tables: Dict[int, pd.DataFrame],
-    estims_map: Dict[str, int],
+    placebo_tables: dict[int, pd.DataFrame],
+    estims_map: dict[str, int],
     placebo_n: int,
 ) -> None:
     """
@@ -265,7 +266,7 @@ def print_aoss_vs_waoss_section(diff_tab: pd.DataFrame) -> None:
     tab_print(diff_tab)
 
 
-def print_first_stage_section(fs_obj: Dict[str, Any]) -> None:
+def print_first_stage_section(fs_obj: dict[str, Any]) -> None:
     """Print first-stage results header for IV-WAOSS."""
     print(f"\n{'=' * 80}")
     print(f"{' ' * 30}First stage estimation")

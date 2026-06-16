@@ -7,11 +7,11 @@ output format, including confidence interval bands and by-group analysis.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
 
 # Default colors for by-group analysis (matching Stata)
 BY_GROUP_COLORS = ["blue", "red", "green", "magenta", "gold", "lime", "cyan", "orange"]
@@ -25,10 +25,10 @@ ESTIMATOR_COLORS = {
 
 
 def _setup_figure(
-    figsize: Tuple[float, float] = (10, 6),
+    figsize: tuple[float, float] = (10, 6),
     nrows: int = 1,
     ncols: int = 1,
-) -> Tuple[plt.Figure, np.ndarray]:
+) -> tuple[plt.Figure, np.ndarray]:
     """
     Set up a matplotlib figure with subplots.
 
@@ -60,7 +60,7 @@ def _add_ci_bands(
     ub: np.ndarray,
     color: str,
     alpha: float = 0.2,
-    label: Optional[str] = None,
+    label: str | None = None,
 ) -> None:
     """
     Add confidence interval bands to an axis.
@@ -99,7 +99,7 @@ def _format_axis(
     ax: plt.Axes,
     xlabel: str = "Relative Time",
     ylabel: str = "Effect Estimate",
-    title: Optional[str] = None,
+    title: str | None = None,
 ) -> None:
     """
     Format axis labels and title.
@@ -130,20 +130,20 @@ def _create_legend(ax: plt.Axes, loc: str = "best") -> None:
 
 
 def plot_event_study(
-    results: Dict[str, Any],
-    estimator: Optional[str] = None,
+    results: dict[str, Any],
+    estimator: str | None = None,
     show_ci: bool = True,
     ci_alpha: float = 0.2,
-    figsize: Tuple[float, float] = (10, 6),
-    colors: Optional[Dict[str, str]] = None,
-    title: Optional[str] = None,
+    figsize: tuple[float, float] = (10, 6),
+    colors: dict[str, str] | None = None,
+    title: str | None = None,
     xlabel: str = "Relative Time",
     ylabel: str = "Effect Estimate",
     show_zero_line: bool = True,
     separate_panels: bool = False,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     dpi: int = 150,
-) -> Union[plt.Figure, Dict[str, plt.Figure]]:
+) -> plt.Figure | dict[str, plt.Figure]:
     """
     Generate event-study style plots for DiD results.
 
@@ -271,7 +271,7 @@ def plot_event_study(
     return fig
 
 
-def _get_placebo_tables(print_obj: Dict[str, Any], placebo_n: int) -> Dict[int, pd.DataFrame]:
+def _get_placebo_tables(print_obj: dict[str, Any], placebo_n: int) -> dict[int, pd.DataFrame]:
     """Extract placebo tables from results."""
     placebo_tables = {}
     for pl_idx in range(1, placebo_n + 1):
@@ -285,16 +285,16 @@ def _plot_single_estimator(
     ax: plt.Axes,
     table: pd.DataFrame,
     estimator: str,
-    estims_map: Dict[str, int],
+    estims_map: dict[str, int],
     pairs: int,
     disaggregate: bool,
     placebo_n: int,
-    placebo_tables: Dict[int, pd.DataFrame],
+    placebo_tables: dict[int, pd.DataFrame],
     color: str,
     show_ci: bool,
     ci_alpha: float,
     show_zero_line: bool,
-    label: Optional[str] = None,
+    label: str | None = None,
 ) -> None:
     """Plot a single estimator's results."""
     # Get rows for this estimator
@@ -358,16 +358,16 @@ def _plot_single_estimator(
 
 
 def plot_by_groups(
-    results: Dict[str, Any],
+    results: dict[str, Any],
     estimator: str = "aoss",
     show_ci: bool = True,
     ci_alpha: float = 0.15,
-    figsize: Tuple[float, float] = (12, 6),
-    colors: Optional[List[str]] = None,
-    title: Optional[str] = None,
+    figsize: tuple[float, float] = (12, 6),
+    colors: list[str] | None = None,
+    title: str | None = None,
     xlabel: str = "Treatment Change",
     ylabel: str = "Effect Estimate",
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     dpi: int = 150,
 ) -> plt.Figure:
     """
@@ -423,7 +423,7 @@ def plot_by_groups(
 
         pairs = int(print_obj.get("pairs", 1))
         l_bound = estim_idx * pairs
-        u_bound = l_bound + 1  # Just first row for each by-group
+        l_bound + 1  # Just first row for each by-group
 
         if l_bound >= len(table):
             continue
@@ -457,11 +457,11 @@ def plot_by_groups(
 
 
 def plot_comparison(
-    results: Dict[str, Any],
-    estimators: Optional[List[str]] = None,
-    figsize: Tuple[float, float] = (10, 6),
+    results: dict[str, Any],
+    estimators: list[str] | None = None,
+    figsize: tuple[float, float] = (10, 6),
     title: str = "Estimator Comparison",
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     dpi: int = 150,
 ) -> plt.Figure:
     """

@@ -4,12 +4,13 @@ name: Release
 # Tag format: v0.1.0, v0.1.1rc1, etc.
 #
 # Setup once on PyPI:
-#   1. Create the project did-multiplegt-stat (one-off).
-#   2. PyPI -> Project settings -> Publishing -> Add trusted publisher -> GitHub:
-#        * Owner: <github-org>
-#        * Repo:  did_multiplegt_stat
+#   1. Create the project did-multiplegt-stat (or use "pending publisher").
+#   2. PyPI -> Account settings -> Publishing -> Add trusted publisher -> GitHub:
+#        * Owner: Credible-Answers
+#        * Repo:  py_did_multiplegt_stat
 #        * Workflow: release.yml
 #        * Environment: pypi
+#   3. Repo Settings -> Environments -> create "pypi" environment.
 
 on:
   push:
@@ -43,29 +44,9 @@ jobs:
           name: dist
           path: dist/
 
-  testpypi:
-    name: Publish to TestPyPI
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/did-multiplegt-stat
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          skip-existing: true
-
   pypi:
     name: Publish to PyPI
-    needs: testpypi
+    needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc')
     environment:

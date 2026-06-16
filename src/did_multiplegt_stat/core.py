@@ -18,13 +18,13 @@ from __future__ import annotations
 import math
 import os
 import warnings
-from typing import Any, Dict, List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
-import matplotlib.pyplot as plt
 from scipy.stats import norm as _scipy_norm
 
 # Optional IV regression packages - imported lazily to avoid hard dependencies
@@ -770,7 +770,7 @@ class _StataOLSModel:
     """OLS wrapper using statsmodels.formula.api.ols (Stata-style)."""
     is_logit = False
 
-    def fit(self, formula: str, df: pd.DataFrame, wcol: Optional[str] = None):
+    def fit(self, formula: str, df: pd.DataFrame, wcol: str | None = None):
         self._mod = smf.ols(formula, data=df).fit()
         self.params = self._mod.params
         return self
@@ -796,7 +796,7 @@ class _StataGLMLogitModel:
     """Logit wrapper using statsmodels GLM (used in cross_validation_select)."""
     is_logit = True
 
-    def fit(self, formula: str, df: pd.DataFrame, wcol: Optional[str] = None):
+    def fit(self, formula: str, df: pd.DataFrame, wcol: str | None = None):
         self._mod = smf.glm(formula, data=df, family=sm.families.Binomial()).fit(
             maxiter=300, disp=0)
         return self
@@ -809,7 +809,7 @@ class _SklearnOLSModel:
     """OLS wrapper using sklearn.linear_model.LinearRegression."""
     is_logit = False
 
-    def fit(self, formula: str, df: pd.DataFrame, wcol: Optional[str] = None):
+    def fit(self, formula: str, df: pd.DataFrame, wcol: str | None = None):
         from sklearn.linear_model import LinearRegression
         y, X, col_names, has_int, cols_no_int = _patsy_design(formula, df)
         self._cols_no_int = cols_no_int
@@ -820,7 +820,7 @@ class _SklearnOLSModel:
         params = {}
         if has_int:
             params["Intercept"] = float(self._lr.intercept_)
-        for c, b in zip(cols_no_int, self._lr.coef_):
+        for c, b in zip(cols_no_int, self._lr.coef_, strict=False):
             params[c] = float(b)
         self.params = pd.Series(params)
         return self
@@ -839,7 +839,7 @@ class _SklearnLogitModel:
     """Logit wrapper using sklearn.linear_model.LogisticRegression (unpenalised)."""
     is_logit = True
 
-    def fit(self, formula: str, df: pd.DataFrame, wcol: Optional[str] = None):
+    def fit(self, formula: str, df: pd.DataFrame, wcol: str | None = None):
         from sklearn.linear_model import LogisticRegression
         y, X, col_names, has_int, cols_no_int = _patsy_design(formula, df)
         if len(np.unique(y[~np.isnan(y)])) <= 1:
@@ -861,7 +861,7 @@ class _SklearnLogitModel:
         params = {}
         if has_int:
             params["Intercept"] = float(self._lr.intercept_[0])
-        for c, b in zip(cols_no_int, self._lr.coef_[0]):
+        for c, b in zip(cols_no_int, self._lr.coef_[0], strict=False):
             params[c] = float(b)
         self.params = pd.Series(params)
         return self
@@ -895,7 +895,7 @@ class _CustomModelWrapper:
         self._is_classifier = is_classifier
         self.is_logit = is_classifier
 
-    def fit(self, formula: str, df: pd.DataFrame, wcol: Optional[str] = None):
+    def fit(self, formula: str, df: pd.DataFrame, wcol: str | None = None):
         import copy
         self._model = copy.deepcopy(self._template)
         y, X, col_names, has_int, cols_no_int = _patsy_design(formula, df)
@@ -945,8 +945,8 @@ def _make_glm_logit(asinstata: bool = True, custom_model=None):
 # ============================================================
 
 def polynomials_generator(df: pd.DataFrame, order: int, var_prefix: str = "D",
-                          controls: Optional[List[str]] = None,
-                          other_treatments: Optional[List[str]] = None):
+                          controls: list[str] | None = None,
+                          other_treatments: list[str] | None = None):
     """
     Generate polynomial terms matching Stata's polynomials_generator.
 
@@ -1003,7 +1003,7 @@ def polynomials_generator(df: pd.DataFrame, order: int, var_prefix: str = "D",
 
     ot_terms = []
     if other_treatments:
-        interact_parts = [f"D1_XX_1_XX"]
+        interact_parts = ["D1_XX_1_XX"]
         for v in other_treatments:
             interact_parts.append(v)
         if len(interact_parts) == 2:
@@ -1036,7 +1036,7 @@ def cross_validation_select(df: pd.DataFrame, outcome: str,
                             algorithm: str = "kfolds",
                             tolerance: float = 0.01, max_k: int = 5,
                             seed: int = 0, kfolds: int = 5,
-                            controls: Optional[List[str]] = None,
+                            controls: list[str] | None = None,
                             first_stage: bool = False,
                             reduced_form: bool = False,
                             asinstata: bool = True,
@@ -1163,35 +1163,35 @@ def cross_validation_select(df: pd.DataFrame, outcome: str,
 def did_multiplegt_stat_pairwise(
     df: pd.DataFrame,
     Y: str, ID: str, Time: str, D: str,
-    Z: Optional[str],
+    Z: str | None,
     estimator: Any,
     order: int,
     noextrapolation: bool,
-    weight: Optional[str],
-    switchers: Optional[str],
+    weight: str | None,
+    switchers: str | None,
     pairwise: int,
     IDs: Any,
     aoss: int, waoss: int, ivwaoss: int,
     estimation_method: str,
-    scalars: Dict[str, Any],
+    scalars: dict[str, Any],
     placebo: int,
     exact_match: bool,
-    cluster: Optional[str],
-    by_fd_opt: Optional[int],
-    other_treatments: Optional[List[str]],
-    controls: Optional[List[str]] = None,
+    cluster: str | None,
+    by_fd_opt: int | None,
+    other_treatments: list[str] | None,
+    controls: list[str] | None = None,
     cross_fitting: int = 0,
     trimming: float = 0,
     on_placebo_sample: bool = False,
-    order_reg: Optional[int] = None,
-    order_logit_bis: Optional[int] = None,
-    order_logit_Plus: Optional[int] = None,
-    order_logit_Minus: Optional[int] = None,
-    cf_folds_file: Optional[str] = None,
+    order_reg: int | None = None,
+    order_logit_bis: int | None = None,
+    order_logit_Plus: int | None = None,
+    order_logit_Minus: int | None = None,
+    cf_folds_file: str | None = None,
     asinstata: bool = True,
     model_deltay=None,
     model_stayer=None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Pairwise DiD estimation between consecutive time periods."""
 
     df = df.copy()
@@ -1535,7 +1535,7 @@ def did_multiplegt_stat_pairwise(
         _, reg_pol_terms_km1 = polynomials_generator(df, _km1, var_prefix="D",
                                                       controls=_poly_controls, other_treatments=other_treatments)
     else:
-        reg_pol_terms_km1 = reg_pol_terms
+        pass
     if not exact_match:
         _, logit_bis_pol = polynomials_generator(df, o_logit_bis, var_prefix="D",
                                                  controls=_poly_controls, other_treatments=other_treatments)
@@ -1585,7 +1585,7 @@ def did_multiplegt_stat_pairwise(
                     df = df.merge(_cf_sub, on="ID_XX", how="left")
                     _cf_loaded = True
             except Exception as e:
-                warnings.warn(f"Could not load cf_folds_file: {e}. Falling back to internal RNG.")
+                warnings.warn(f"Could not load cf_folds_file: {e}. Falling back to internal RNG.", stacklevel=2)
         if not _cf_loaded:
             # Use Stata-compatible mt64s RNG so fold assignments match Stata exactly
             _rng_stata = _StataMT64(1234)
@@ -1789,7 +1789,7 @@ def did_multiplegt_stat_pairwise(
                     # Trimming on cross-fitted PS
                     if trimming > 0:
                         df["trimmed_out_XX"] = (df["cf_PS_0_D_1_XX"] < trimming) & df["cf_PS_0_D_1_XX"].notna()
-                        df.loc[df["trimmed_out_XX"] == True, "cf_PS_0_D_1_XX"] = np.nan
+                        df.loc[df["trimmed_out_XX"], "cf_PS_0_D_1_XX"] = np.nan
                 elif trimming > 0:
                     # Stata: trimming without cross_fitting is not allowed (ignored)
                     pass
@@ -1951,7 +1951,8 @@ def did_multiplegt_stat_pairwise(
                             for _cname, _csdd, _cps0, _cis in _combos:
                                 _drt = np.where(_sbis == 0, -(_csdd / _cps0) * _cis, _sodd * _cis)
                                 _drt = _drt.astype(float)
-                                _asw = 0.0; _asn = 0.0
+                                _asw = 0.0
+                                _asn = 0.0
                                 for cf_id in range(1, cross_fitting + 1):
                                     fm = _cf == cf_id
                                     fm_ok = fm & ~np.isnan(_drt)
@@ -1962,7 +1963,8 @@ def did_multiplegt_stat_pairwise(
                                         _adk = 0.0
                                     else:
                                         _adk = float(np.sum(_drt[fm_ok] * _w[fm_ok])) / _aNk
-                                    _asw += _aNk; _asn += _aNk * _adk
+                                    _asw += _aNk
+                                    _asn += _aNk * _adk
                                 _ad1 = _asn / _asw if _asw != 0 else 0.0
                                 print(f"    ABLATION p={pairwise} {_cname}: delta1={_ad1:.10f}")
                         if os.environ.get("DMS_DEBUG_CF") == "DETAIL" and str(pairwise) == os.environ.get("DMS_DEBUG_PAIR", "3"):
@@ -1983,7 +1985,7 @@ def did_multiplegt_stat_pairwise(
                                     _dk = _numk / _nk
                                 print(f"      fold {cf_id}: N={_n_fold} ok={_n_ok} Nk={_nk:.1f} ESk={_esk:.4f} numk={_numk:.8f} dk={_dk:.10f}")
                             # Also dump per-obs data
-                            print(f"    --- Per-obs data (first 20 obs) ---")
+                            print("    --- Per-obs data (first 20 obs) ---")
                             _dbg_df = df[["ID_XX","D1_XX","S_bis_XX","cf_sample_id",
                                           inner_sum_col, ps0_col, sdd_cf_col,
                                           "inner_sum_delta_1_2_XX","PS_0_D_1_XX","mean_S_over_delta_D_XX",
@@ -2124,8 +2126,8 @@ def did_multiplegt_stat_pairwise(
                 scalars[f"W_Plus_{pairwise}{pl}_XX"] = (w_plus / denomw) if denomw != 0 else 0.0
 
             # Choose PS columns for CF or full
-            ps1_plus_col = f"cf_PS_1_Plus_D_1_XX" if (cross_fitting > 0 and f"cf_PS_1_Plus_D_1_XX" in df.columns) else "PS_1_Plus_D_1_XX"
-            ps1_minus_col = f"cf_PS_1_Minus_D_1_XX" if (cross_fitting > 0 and f"cf_PS_1_Minus_D_1_XX" in df.columns) else "PS_1_Minus_D_1_XX"
+            ps1_plus_col = "cf_PS_1_Plus_D_1_XX" if (cross_fitting > 0 and "cf_PS_1_Plus_D_1_XX" in df.columns) else "PS_1_Plus_D_1_XX"
+            ps1_minus_col = "cf_PS_1_Minus_D_1_XX" if (cross_fitting > 0 and "cf_PS_1_Minus_D_1_XX" in df.columns) else "PS_1_Minus_D_1_XX"
 
             if not exact_match:
                 ps_plus = df.get(ps1_plus_col, pd.Series(0.0, index=df.index))
@@ -2195,14 +2197,16 @@ def did_multiplegt_stat_pairwise(
                                 _drt_sw = _sxx * _cin
                                 _drt = np.where(_sbis == 0, _drt_st, _drt_sw)
                                 _drt = np.where(np.isnan(_sbis), np.nan, _drt)
-                                _asw2 = 0.0; _asn2 = 0.0
+                                _asw2 = 0.0
+                                _asn2 = 0.0
                                 for cf_id in range(1, cross_fitting + 1):
                                     fm = _cf == cf_id
                                     fm_ok = fm & ~np.isnan(_drt)
                                     _ank = float(np.sum(_a[fm_ok] * _w[fm_ok])) if np.any(fm_ok) else 0.0
                                     _annk = float(np.sum(_drt[fm_ok] * _w[fm_ok])) if np.any(fm_ok) else 0.0
                                     if _ank != 0:
-                                        _asw2 += _ank; _asn2 += _annk
+                                        _asw2 += _ank
+                                        _asn2 += _annk
                                 _ad2 = _asn2 / _asw2 if _asw2 != 0 else 0.0
                                 print(f"    ABLATION-WAS p={pairwise} {_cname}: delta2={_ad2:.10f}")
                 else:
@@ -2477,37 +2481,37 @@ def did_multiplegt_stat_pairwise(
 def did_multiplegt_stat_main(
     df: pd.DataFrame,
     Y: str, ID: str, Time: str, D: str,
-    Z: Optional[str],
-    estimator: List[str],
+    Z: str | None,
+    estimator: list[str],
     estimation_method: str,
     order: int,
     noextrapolation: bool,
     placebo: int,
-    switchers: Optional[str],
+    switchers: str | None,
     disaggregate: bool,
     aoss_vs_waoss: bool,
     exact_match: bool,
-    weight: Optional[str],
-    cluster: Optional[str],
-    by_fd_opt: Optional[Any],
-    other_treatments: Optional[List[str]],
-    controls: Optional[List[str]] = None,
+    weight: str | None,
+    cluster: str | None,
+    by_fd_opt: Any | None,
+    other_treatments: list[str] | None,
+    controls: list[str] | None = None,
     cross_fitting: int = 0,
     trimming: float = 0,
     on_placebo_sample: bool = False,
-    order_reg: Optional[int] = None,
-    order_logit_bis: Optional[int] = None,
-    order_logit_Plus: Optional[int] = None,
-    order_logit_Minus: Optional[int] = None,
+    order_reg: int | None = None,
+    order_logit_bis: int | None = None,
+    order_logit_Plus: int | None = None,
+    order_logit_Minus: int | None = None,
     bootstrap: int = 0,
     twfe: bool = False,
     seed: int = 0,
-    cross_validation_opt: Optional[Dict[str, Any]] = None,
-    cf_folds_file: Optional[str] = None,
+    cross_validation_opt: dict[str, Any] | None = None,
+    cf_folds_file: str | None = None,
     asinstata: bool = True,
     model_deltay=None,
     model_stayer=None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Main aggregation function."""
 
     aoss_XX = int("aoss" in estimator)
@@ -2568,7 +2572,7 @@ def did_multiplegt_stat_main(
             if weight in df.columns:
                 df["weight_XX"] = df[weight]
             else:
-                warnings.warn(f"Weight column '{weight}' not found in data; using uniform weights.")
+                warnings.warn(f"Weight column '{weight}' not found in data; using uniform weights.", stacklevel=2)
                 df["weight_XX"] = 1.0
         df["weight_XX"] = df["weight_XX"].fillna(0.0).astype(float)
         df["weight_c_XX"] = 1.0
@@ -2605,10 +2609,8 @@ def did_multiplegt_stat_main(
         df_cv["deltaYt_XX"] = df_cv.groupby("ID_XX")["Y_XX"].diff()
         df_cv["deltaDt_XX"] = df_cv.groupby("ID_XX")["D_XX"].diff()
 
-        var_prefix = "D"
         if ivwaoss_XX == 1:
             df_cv["deltaZt_XX"] = df_cv.groupby("ID_XX")["Z_XX"].diff()
-            var_prefix = "Z"
             df_cv["SIbist_XX"] = (df_cv["deltaZt_XX"] != 0).astype(float)
             df_cv.loc[df_cv["deltaZt_XX"].isna(), "SIbist_XX"] = np.nan
             df_cv["SI0bist_XX"] = 1 - df_cv["SIbist_XX"]
@@ -2679,7 +2681,7 @@ def did_multiplegt_stat_main(
               f"logit_Plus={order_logit_Plus}, logit_Minus={order_logit_Minus}")
 
     # Initialize scalars
-    scalars: Dict[str, Any] = dict(
+    scalars: dict[str, Any] = dict(
         PS_sum_XX=0.0, delta_1_1_XX=0.0,
         E_abs_delta_D_sum_XX=0.0, delta_2_1_XX=0.0,
         denom_delta_IV_sum_XX=0.0, delta_3_1_XX=0.0,
@@ -2747,7 +2749,7 @@ def did_multiplegt_stat_main(
     placebo_results = {}
     if placebo > 0:
         for placebo_index in range(1, placebo + 1):
-            pl_scalars: Dict[str, Any] = dict(
+            pl_scalars: dict[str, Any] = dict(
                 PS_sum_pl_XX=0.0, delta_1_1_pl_XX=0.0,
                 E_abs_delta_D_sum_pl_XX=0.0, delta_2_1_pl_XX=0.0,
                 denom_delta_IV_sum_pl_XX=0.0, delta_3_1_pl_XX=0.0,
@@ -2975,7 +2977,7 @@ def did_multiplegt_stat_main(
 
     out_table = pd.DataFrame(ret, index=rown, columns=colnames)
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "table": out_table,
         "pairs": int(max_T_XX),
         "N": int(out_table.iloc[0]["Switchers"] + out_table.iloc[0]["Stayers"]) if len(out_table) > 0 and not np.isnan(out_table.iloc[0]["Switchers"]) else int(df["ID_XX"].nunique()),
@@ -3040,10 +3042,10 @@ def did_multiplegt_stat_main(
 
 def did_multiplegt_stat_quantiles(
     df: pd.DataFrame, ID: str, Time: str, D: str,
-    Z: Optional[str] = None, by_opt: int = 2,
-    quantiles: Optional[Sequence[float]] = None,
+    Z: str | None = None, by_opt: int = 2,
+    quantiles: Sequence[float] | None = None,
     by_baseline: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if quantiles is None:
         quantiles = np.linspace(0, 1, by_opt + 1).tolist()
 
@@ -3083,10 +3085,10 @@ def did_multiplegt_stat_quantiles(
 
     _ensure_numeric(df_switch0, quant_var)
     vals = df_switch0[quant_var].dropna()
-    cut_points = np.quantile(vals, quantiles)
+    np.quantile(vals, quantiles)
 
     df_bal["partition_XX"] = np.nan
-    for idx_row in df_bal.index:
+    for _idx_row in df_bal.index:
         if quant_mask.reindex(df_bal.index, fill_value=False).iloc[0] if len(df_bal) == 0 else False:
             pass
     # Use pd.qcut for equal-frequency binning (matches Stata's xtile)
@@ -3141,36 +3143,36 @@ def did_multiplegt_stat_quantiles(
 def did_multiplegt_stat(
     df: pd.DataFrame,
     Y: str, ID: str, Time: str, D: str,
-    Z: Optional[str] = None,
-    estimator: Optional[Union[str, Sequence[str]]] = None,
-    estimation_method: Optional[str] = None,
-    order: Union[int, List[int]] = 1,
+    Z: str | None = None,
+    estimator: str | Sequence[str] | None = None,
+    estimation_method: str | None = None,
+    order: int | list[int] = 1,
     noextrapolation: bool = False,
     placebo: int = 0,
-    switchers: Optional[str] = None,
+    switchers: str | None = None,
     disaggregate: bool = False,
     aoss_vs_waoss: bool = False,
     exact_match: bool = False,
-    by: Optional[Sequence[str]] = None,
-    by_fd: Optional[int] = None,
-    by_baseline: Optional[int] = None,
-    other_treatments: Optional[Sequence[str]] = None,
-    cluster: Optional[str] = None,
-    weight: Optional[str] = None,
-    controls: Optional[Sequence[str]] = None,
+    by: Sequence[str] | None = None,
+    by_fd: int | None = None,
+    by_baseline: int | None = None,
+    other_treatments: Sequence[str] | None = None,
+    cluster: str | None = None,
+    weight: str | None = None,
+    controls: Sequence[str] | None = None,
     cross_fitting: int = 0,
     trimming: float = 0,
     on_placebo_sample: bool = False,
     bootstrap: int = 0,
-    twfe: Union[bool, Dict[str, Any]] = False,
+    twfe: bool | dict[str, Any] = False,
     seed: int = 0,
-    cross_validation: Optional[Dict[str, Any]] = None,
+    cross_validation: dict[str, Any] | None = None,
     iv_method: str = "manual",
-    cf_folds_file: Optional[str] = None,
+    cf_folds_file: str | None = None,
     asinstata: bool = False,
     model_deltay=None,
     model_stayer=None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Python interface for did_multiplegt_stat.
 
@@ -3305,7 +3307,7 @@ def did_multiplegt_stat(
         order_fs_display = order_display
         order_rf_display = order_display
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "args": {
             "Y": Y, "ID": ID, "Time": Time, "D": D, "Z": Z,
             "estimator": estimator_list, "estimation_method": estimation_method,
@@ -3451,6 +3453,7 @@ def did_multiplegt_stat(
                        bootstrap, twfe_active, seed, cross_validation,
                        twfe_same_sample=twfe_same_sample,
                        twfe_percentile=twfe_percentile,
+                       iv_method=iv_method,
                        asinstata=asinstata,
                        model_deltay=model_deltay,
                        model_stayer=model_stayer)
@@ -3471,6 +3474,7 @@ def _run_bootstrap(out, df_work, Y, ID, Time, D, Z, estimator_list,
                    order_logit_Plus, order_logit_Minus,
                    n_bootstrap, twfe, seed, cross_validation,
                    twfe_same_sample=False, twfe_percentile=False,
+                   iv_method="manual",
                    asinstata=True,
                    model_deltay=None, model_stayer=None):
     """Run bootstrap for IV-WAS SEs and/or TWFE comparison."""
@@ -3481,14 +3485,14 @@ def _run_bootstrap(out, df_work, Y, ID, Time, D, Z, estimator_list,
         return
 
     ivwaoss_XX = int("ivwaoss" in estimator_list)
-    waoss_XX = int("waoss" in estimator_list)
-    aoss_XX = int("aoss" in estimator_list)
+    int("waoss" in estimator_list)
+    int("aoss" in estimator_list)
 
     max_T = main_results.get("pairs", 2)
     bt_effects = np.full((n_bootstrap, max_T), np.nan)
     # Bootstrap storage for placebo estimates: bt_placebo[pl_idx][i, j] = estimate for bootstrap i, estimator j
     bt_placebo = {}
-    n_est = len(estimator_list)
+    len(estimator_list)
     if placebo > 0:
         for pl_idx in range(1, placebo + 1):
             bt_placebo[pl_idx] = np.full((n_bootstrap, 3), np.nan)  # 3 estimators max
@@ -3551,7 +3555,7 @@ def _run_bootstrap(out, df_work, Y, ID, Time, D, Z, estimator_list,
             for pl_idx in range(1, placebo + 1):
                 pl_tbl = res_bt.get(f"table_placebo_{pl_idx}", None)
                 if isinstance(pl_tbl, pd.DataFrame):
-                    for j_est, est in enumerate(estimator_list):
+                    for _j_est, est in enumerate(estimator_list):
                         j = {"aoss": 0, "waoss": 1, "ivwaoss": 2}[est]
                         if j < len(pl_tbl):
                             bt_placebo[pl_idx][i, j] = pl_tbl.iloc[j, 0]
@@ -3636,7 +3640,7 @@ def _run_bootstrap(out, df_work, Y, ID, Time, D, Z, estimator_list,
         bt_pl = bt_placebo.get(pl_idx, None)
         if bt_pl is None:
             continue
-        for j_est, est in enumerate(estimator_list):
+        for _j_est, est in enumerate(estimator_list):
             j = {"aoss": 0, "waoss": 1, "ivwaoss": 2}[est]
             if j >= len(pl_tbl):
                 continue
@@ -3656,7 +3660,7 @@ def _run_bootstrap(out, df_work, Y, ID, Time, D, Z, estimator_list,
         if len(twfe_vals) > 5:
             twfe_mean = np.mean(twfe_vals)
             twfe_sd = np.std(twfe_vals, ddof=1)
-            main_est = float(main_results["table"].iloc[0, 0]) if isinstance(main_results.get("table"), pd.DataFrame) else np.nan
+            float(main_results["table"].iloc[0, 0]) if isinstance(main_results.get("table"), pd.DataFrame) else np.nan
             diff_vals = twfe_vals - bt_effects[:len(twfe_vals), 0]
             diff_vals = diff_vals[~np.isnan(diff_vals)]
             diff_mean = np.mean(diff_vals) if len(diff_vals) > 0 else np.nan
@@ -3755,7 +3759,7 @@ def strdisplay(label, value, width=46):
     print(f" {label}{' ' * label_space}={' ' * 1}{v:>{len(str(v))}}")
 
 
-def summary_did_multiplegt_stat(obj: Dict[str, Any]):
+def summary_did_multiplegt_stat(obj: dict[str, Any]):
     args = obj.get("args", {})
     estim_list = args.get("estimator", ["aoss", "waoss"])
     by_var = args.get("by")
@@ -3886,7 +3890,7 @@ def summary_did_multiplegt_stat(obj: Dict[str, Any]):
         if args.get("aoss_vs_waoss"):
             diff_tab = print_obj.get("aoss_vs_waoss", None)
             if diff_tab is not None:
-                print(f" ")
+                print(" ")
                 print(f"{'-' * 80}")
                 # Stata: "Test of difference between AS and WAS"
                 title = "Test of difference between AS and WAS"
@@ -3913,7 +3917,7 @@ def summary_did_multiplegt_stat(obj: Dict[str, Any]):
     # TWFE comparison - Stata format
     twfe_tab = obj.get("twfe_comparison", None)
     if twfe_tab is not None:
-        print(f" ")
+        print(" ")
         # Determine estimator label for title
         if "ivwaoss" in estim_list:
             title = "Test of difference between TWFE and IV-WAS"
@@ -3935,5 +3939,5 @@ def summary_did_multiplegt_stat(obj: Dict[str, Any]):
         print("Values in Column Estimate. are means of bootstrap's point estimates.")
 
 
-def print_did_multiplegt_stat(obj: Dict[str, Any]):
+def print_did_multiplegt_stat(obj: dict[str, Any]):
     summary_did_multiplegt_stat(obj)

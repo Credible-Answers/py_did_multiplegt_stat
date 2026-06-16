@@ -32,18 +32,18 @@ Quick example::
 from __future__ import annotations
 
 from .core import (
+    cross_validation_select,
     did_multiplegt_stat,
     did_multiplegt_stat_main,
     did_multiplegt_stat_pairwise,
     did_multiplegt_stat_quantiles,
-    summary_did_multiplegt_stat,
-    print_did_multiplegt_stat,
     polynomials_generator,
-    cross_validation_select,
+    print_did_multiplegt_stat,
     run_iv_regression,
+    summary_did_multiplegt_stat,
 )
 from .estimator import DIDMultiplegtStat
-from .plotting import plot_event_study, plot_by_groups, plot_comparison
+from .plotting import plot_by_groups, plot_comparison, plot_event_study
 
 __version__ = "0.1.0"
 

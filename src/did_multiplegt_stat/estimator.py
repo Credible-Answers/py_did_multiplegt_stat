@@ -7,26 +7,25 @@ estimator, following scikit-learn conventions.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-import numpy as np
-import pandas as pd
+from collections.abc import Sequence
+from typing import Any
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from .core import did_multiplegt_stat as _did_multiplegt_stat
 from .display import (
-    print_header,
-    print_estimator_section,
-    print_placebo_section,
     print_aoss_vs_waoss_section,
+    print_estimator_section,
     print_first_stage_section,
+    print_header,
+    print_placebo_section,
     print_twfe_comparison,
-    mat_print,
-    tab_print,
 )
 from .plotting import (
-    plot_event_study,
     plot_by_groups,
     plot_comparison,
+    plot_event_study,
 )
 
 
@@ -126,33 +125,33 @@ class DIDMultiplegtStat:
 
     def __init__(
         self,
-        estimator: Optional[Union[str, Sequence[str]]] = None,
-        estimation_method: Optional[str] = None,
-        order: Union[int, List[int]] = 1,
+        estimator: str | Sequence[str] | None = None,
+        estimation_method: str | None = None,
+        order: int | list[int] = 1,
         noextrapolation: bool = False,
         placebo: int = 0,
-        switchers: Optional[str] = None,
+        switchers: str | None = None,
         disaggregate: bool = False,
         aoss_vs_waoss: bool = False,
         exact_match: bool = False,
-        by: Optional[Sequence[str]] = None,
-        by_fd: Optional[int] = None,
-        by_baseline: Optional[int] = None,
-        other_treatments: Optional[Sequence[str]] = None,
-        cluster: Optional[str] = None,
-        weight: Optional[str] = None,
-        controls: Optional[Sequence[str]] = None,
+        by: Sequence[str] | None = None,
+        by_fd: int | None = None,
+        by_baseline: int | None = None,
+        other_treatments: Sequence[str] | None = None,
+        cluster: str | None = None,
+        weight: str | None = None,
+        controls: Sequence[str] | None = None,
         cross_fitting: int = 0,
         trimming: float = 0,
         on_placebo_sample: bool = False,
         bootstrap: int = 0,
-        twfe: Union[bool, Dict[str, Any]] = False,
+        twfe: bool | dict[str, Any] = False,
         seed: int = 0,
-        cross_validation: Optional[Dict[str, Any]] = None,
+        cross_validation: dict[str, Any] | None = None,
         iv_method: str = "manual",
         asinstata: bool = False,
-        model_deltay: Optional[Any] = None,
-        model_stayer: Optional[Any] = None,
+        model_deltay: Any | None = None,
+        model_stayer: Any | None = None,
     ) -> None:
         """Initialize the estimator with configuration parameters."""
         self.estimator = estimator
@@ -184,21 +183,21 @@ class DIDMultiplegtStat:
         self.model_stayer = model_stayer
 
         # Fitted attributes (set after fit())
-        self.results_: Optional[Dict[str, Any]] = None
-        self.table_: Optional[pd.DataFrame] = None
-        self.placebo_tables_: Optional[Dict[int, pd.DataFrame]] = None
-        self.n_obs_: Optional[int] = None
-        self.n_clusters_: Optional[int] = None
-        self.by_levels_: Optional[List] = None
-        self.first_stage_: Optional["DIDMultiplegtStat"] = None
+        self.results_: dict[str, Any] | None = None
+        self.table_: pd.DataFrame | None = None
+        self.placebo_tables_: dict[int, pd.DataFrame] | None = None
+        self.n_obs_: int | None = None
+        self.n_clusters_: int | None = None
+        self.by_levels_: list | None = None
+        self.first_stage_: DIDMultiplegtStat | None = None
         self.is_fitted_: bool = False
 
         # Data column names (set after fit())
-        self._Y: Optional[str] = None
-        self._ID: Optional[str] = None
-        self._Time: Optional[str] = None
-        self._D: Optional[str] = None
-        self._Z: Optional[str] = None
+        self._Y: str | None = None
+        self._ID: str | None = None
+        self._Time: str | None = None
+        self._D: str | None = None
+        self._Z: str | None = None
 
     def fit(
         self,
@@ -207,8 +206,8 @@ class DIDMultiplegtStat:
         ID: str,
         Time: str,
         D: str,
-        Z: Optional[str] = None,
-    ) -> "DIDMultiplegtStat":
+        Z: str | None = None,
+    ) -> DIDMultiplegtStat:
         """
         Fit the DiD estimator.
 
@@ -442,19 +441,19 @@ class DIDMultiplegtStat:
 
     def plot(
         self,
-        estimator: Optional[str] = None,
+        estimator: str | None = None,
         show_ci: bool = True,
         ci_alpha: float = 0.2,
-        figsize: Tuple[float, float] = (10, 6),
-        colors: Optional[Dict[str, str]] = None,
-        title: Optional[str] = None,
+        figsize: tuple[float, float] = (10, 6),
+        colors: dict[str, str] | None = None,
+        title: str | None = None,
         xlabel: str = "Relative Time",
         ylabel: str = "Effect Estimate",
         show_zero_line: bool = True,
         separate_panels: bool = False,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         dpi: int = 150,
-    ) -> Union[plt.Figure, Dict[str, plt.Figure]]:
+    ) -> plt.Figure | dict[str, plt.Figure]:
         """
         Generate event-study style plots.
 
@@ -525,10 +524,10 @@ class DIDMultiplegtStat:
 
     def plot_comparison(
         self,
-        estimators: Optional[List[str]] = None,
-        figsize: Tuple[float, float] = (10, 6),
+        estimators: list[str] | None = None,
+        figsize: tuple[float, float] = (10, 6),
         title: str = "Estimator Comparison",
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         dpi: int = 150,
     ) -> plt.Figure:
         """
@@ -562,7 +561,7 @@ class DIDMultiplegtStat:
             dpi=dpi,
         )
 
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+    def get_params(self, deep: bool = True) -> dict[str, Any]:
         """
         Get parameters for this estimator.
 
@@ -606,7 +605,7 @@ class DIDMultiplegtStat:
             "model_stayer": self.model_stayer,
         }
 
-    def set_params(self, **params) -> "DIDMultiplegtStat":
+    def set_params(self, **params) -> DIDMultiplegtStat:
         """
         Set the parameters of this estimator.
 
@@ -643,7 +642,7 @@ class DIDMultiplegtStat:
 
     def get_coefficients(
         self,
-        estimator: Optional[str] = None,
+        estimator: str | None = None,
     ) -> pd.Series:
         """
         Get coefficient estimates for specified estimator.
@@ -684,7 +683,7 @@ class DIDMultiplegtStat:
 
     def get_confidence_intervals(
         self,
-        estimator: Optional[str] = None,
+        estimator: str | None = None,
         level: float = 0.95,
     ) -> pd.DataFrame:
         """

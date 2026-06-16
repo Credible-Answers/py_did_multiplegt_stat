@@ -1,62 +1,53 @@
-name: Release
-
+name: Release                                                               
+                                                                
 # Tag-triggered release to PyPI via Trusted Publishing (OIDC, no API tokens).
 # Tag format: v0.1.0, v0.1.1rc1, etc.
-#
-# Setup once on PyPI:
-#   1. Create the project did-multiplegt-stat (or use "pending publisher").
-#   2. PyPI -> Account settings -> Publishing -> Add trusted publisher -> GitHub:
-#        * Owner: Credible-Answers
-#        * Repo:  py_did_multiplegt_stat
-#        * Workflow: release.yml
-#        * Environment: pypi
-#   3. Repo Settings -> Environments -> create "pypi" environment.
-
+                                                                            
 on:
-  push:
-    tags: ["v*"]
-
+  push:                                                                     
+    tags: ["v*"]                                                
+                                                                            
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
+        with:                                                               
           fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        with:
+                                                                            
+      - uses: actions/setup-python@v5                           
+        with:                                                             
           python-version: "3.12"
 
       - name: Install build deps
         run: |
-          python -m pip install --upgrade pip build twine
+          python -m pip install --upgrade pip build twine                   
 
-      - name: Build sdist + wheel
-        run: python -m build
-
+      - name: Build sdist + wheel                                           
+        run: python -m build                                    
+                                                                          
       - name: Twine check
         run: twine check dist/*
-
+                                                                            
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
+        uses: actions/upload-artifact@v4                                    
+        with:                                                   
+          name: dist                                                      
           path: dist/
 
   pypi:
     name: Publish to PyPI
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest                                                  
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/did-multiplegt-stat
-    permissions:
-      id-token: write
-    steps:
+    environment:                                                            
+      name: pypi                                                            
+      url: https://pypi.org/p/did-multiplegt-stat                         
+    permissions:                                                            
+      id-token: write                                           
+    steps:                                                                
       - uses: actions/download-artifact@v4
-        with:
+        with:                                                               
           name: dist
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+          path: dist/                                                       
+      - uses: pypa/gh-action-pypi-publish@release/v1   

@@ -1,0 +1,115 @@
+site_name: did_multiplegt_stat
+site_description: >-
+  Heterogeneity-robust difference-in-differences estimators (AS, WAS, IV-WAS)
+  with stayers, for binary, discrete, or continuous treatments. Python port of
+  the Stata did_multiplegt_stat package.
+site_url: https://chaisemartin.github.io/did_multiplegt_stat/
+repo_url: https://github.com/chaisemartin/did_multiplegt_stat
+repo_name: chaisemartin/did_multiplegt_stat
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Help file:
+      - Reference: help.md
+      - Syntax: syntax.md
+      - Options: options.md
+      - Examples: examples.md
+      - Stored results: stored_results.md
+  - Python API:
+      - DIDMultiplegtStat class: api/class.md
+      - Functional API: api/functional.md
+      - Plotting: api/plotting.md
+  - Stata parity: parity.md
+  - Changelog: changelog.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            separate_signature: true
+            docstring_style: numpy
+            merge_init_into_class: true
+            members_order: source
+            heading_level: 2
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/chaisemartin/did_multiplegt_stat
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/did-multiplegt-stat/
+  version:
+    provider: mike
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

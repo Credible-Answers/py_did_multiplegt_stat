@@ -1,0 +1,53 @@
+cff-version: 1.2.0
+title: "did_multiplegt_stat (Python port)"
+message: "If you use this software in academic work, please cite the underlying paper."
+type: software
+license: GPL-3.0-or-later
+version: "0.1.0"
+date-released: "2026-06-16"
+url: "https://github.com/chaisemartin/did_multiplegt_stat"
+repository-code: "https://github.com/chaisemartin/did_multiplegt_stat"
+authors:
+  - family-names: "de Chaisemartin"
+    given-names: "Clément"
+    affiliation: "Sciences Po, Economics Department"
+  - family-names: "Ciccia"
+    given-names: "Diego"
+    affiliation: "Sciences Po"
+  - family-names: "D'Haultfœuille"
+    given-names: "Xavier"
+    affiliation: "CREST-ENSAE"
+  - family-names: "Knau"
+    given-names: "Felix"
+    affiliation: "Sciences Po"
+  - family-names: "Pasquier"
+    given-names: "Felix"
+    affiliation: "CREST-ENSAE"
+  - family-names: "Sow"
+    given-names: "Doulo"
+    affiliation: "Sciences Po"
+  - family-names: "Vazquez-Bare"
+    given-names: "Gonzalo"
+    affiliation: "UCSB"
+  - family-names: "Quispe"
+    given-names: "Anzony"
+    email: "anzony.quispe@gmail.com"
+preferred-citation:
+  type: article
+  title: "Difference-in-Differences Estimators for Treatments Continuously Distributed at Every Period"
+  year: 2024
+  identifiers:
+    - type: other
+      value: "arXiv:2201.06898"
+      description: "arXiv preprint"
+  authors:
+    - family-names: "de Chaisemartin"
+      given-names: "Clément"
+    - family-names: "D'Haultfœuille"
+      given-names: "Xavier"
+    - family-names: "Pasquier"
+      given-names: "Felix"
+    - family-names: "Sow"
+      given-names: "Doulo"
+    - family-names: "Vazquez-Bare"
+      given-names: "Gonzalo"

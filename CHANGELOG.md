@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-18
+
+### Fixed
+
+- Matched Stata's missing-value ordering in `noextrapolation` support checks,
+  correcting AS/WAS placebo estimates and standard errors when
+  `asinstata=True`, `noextrapolation=True`, and multiple placebos are used.
+
+### Documentation
+
+- Added a prominent random-forest example showing how to estimate both
+  nuisance functions with custom scikit-learn-style models.
+- Made the README examples easier to run in Jupyter notebooks by including
+  commented installation commands, self-contained imports, and direct links
+  to the example dataset.
+- Documented two original Stata commands alongside complete class-based Python
+  examples for the default scikit-learn and Stata-faithful nuisance-regression
+  backends.
+- Added random-forest nuisance-model versions of both documented examples.
+- Replaced the functional API example with the main `DIDMultiplegtStat` model
+  configured with `asinstata=True` for Stata-faithful results.
+- Corrected the Stata-faithful example to match the referenced ado command's
+  `lngpinc` outcome, doubly robust method, and `noextra` specification.
+- Updated PyPI project metadata to point to the active GitHub repository.
+
+### Packaging
+
+- Added a release guard that requires the Git tag to match the package version.
+
 ## [0.1.0] - 2026-06-16
 
 Initial public release.

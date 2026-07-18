@@ -1418,7 +1418,12 @@ def did_multiplegt_stat_pairwise(
             else:
                 max_D1, min_D1 = float("-inf"), float("inf")
             d1 = df["D1_XX"].to_numpy(dtype=float)
-            df["outofBounds_XX"] = (~np.isnan(d1)) & ((d1 < min_D1) | (d1 > max_D1))
+            # Stata numeric missing (.) sorts above every finite number.  Thus
+            # `D1_XX > max_D1` is true for missing D1 values, including rows
+            # made ineligible by the placebo restriction.  NumPy comparisons
+            # with NaN are false, so include them explicitly to preserve the
+            # ado-file's no-extrapolation sample.
+            df["outofBounds_XX"] = np.isnan(d1) | (d1 < min_D1) | (d1 > max_D1)
             N_drop = float(np.nansum(df["outofBounds_XX"].astype(float)))
             scalars[f"N_drop_{pairwise}{pl}_XX"] = N_drop
             df = df[~df["outofBounds_XX"]]
@@ -1433,7 +1438,8 @@ def did_multiplegt_stat_pairwise(
             else:
                 max_Z1, min_Z1 = float("-inf"), float("inf")
             z1 = df["Z1_XX"].to_numpy(dtype=float)
-            df["outofBoundsIV_XX"] = (~np.isnan(z1)) & ((z1 < min_Z1) | (z1 > max_Z1))
+            # Match Stata's ordering of numeric missing values; see D1 above.
+            df["outofBoundsIV_XX"] = np.isnan(z1) | (z1 < min_Z1) | (z1 > max_Z1)
             N_IVdrop = float(np.nansum(df["outofBoundsIV_XX"].astype(float)))
             df = df[~df["outofBoundsIV_XX"]]
             if N_IVdrop > 0 and placebo_index == 0 and gap_XX == 0:

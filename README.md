@@ -27,36 +27,203 @@ pip install "did-multiplegt-stat[docs]"           # build docs locally
 pip install "did-multiplegt-stat[dev]"            # tests + tooling
 ```
 
-## Quick start
+## Quick start: default scikit-learn regressions
+
+By default, `DIDMultiplegtStat` uses scikit-learn's `LinearRegression` for the
+outcome-change nuisance function and `LogisticRegression` for the stayer
+probability nuisance functions. This is equivalent to setting
+`asinstata=False`. The option is written explicitly below so that the backend
+used by each example is unambiguous.
+
+### Example 1: AS and WAS of gasoline taxes on log consumption
+
+Original Stata command:
+
+```stata
+did_multiplegt_stat lngca id year tau, or(1) estimator(as was) placebo(3) as_vs_was
+```
+
+Python with the default scikit-learn OLS and logit regressions:
 
 ```python
+# Uncomment this line when running the example in a Jupyter notebook:
+# %pip install pandas scikit-learn did-multiplegt-stat
+
 import pandas as pd
 from did_multiplegt_stat import DIDMultiplegtStat
 
-df = pd.read_stata("gazoline_did_multiplegt_stat.dta")
+data_url = (
+    "https://raw.githubusercontent.com/Credible-Answers/"
+    "py_did_multiplegt_stat/main/tests/data/gazoline_did_multiplegt_stat.dta"
+)
+df = pd.read_stata(data_url)
 
-# AS + WAS with 3 placebo periods (mirrors Stata example 2)
 model = DIDMultiplegtStat(
     estimator=["aoss", "waoss"],
+    estimation_method="dr",
     order=1,
     placebo=3,
     aoss_vs_waoss=True,
+    asinstata=False,  # scikit-learn LinearRegression and LogisticRegression
 )
 model.fit(df, Y="lngca", ID="id", Time="year", D="tau")
 model.summary()
 model.plot()
 ```
 
-Functional API (one-shot, mirrors the Stata command):
+### Example 2: AS and WAS with no extrapolation
+
+Original Stata command:
+
+```stata
+did_multiplegt_stat lngpinc id year tau, or(1) estimator(as was) estimation_method(dr) placebo(3) noextra as_vs_was
+```
+
+Python with the default scikit-learn OLS and logit regressions:
 
 ```python
-from did_multiplegt_stat import did_multiplegt_stat, summary_did_multiplegt_stat
+# Uncomment this line when running the example in a Jupyter notebook:
+# %pip install pandas scikit-learn did-multiplegt-stat
 
-res = did_multiplegt_stat(df, Y="lngca", ID="id", Time="year", D="tau",
-                          estimator=["aoss", "waoss"], placebo=3,
-                          aoss_vs_waoss=True)
-summary_did_multiplegt_stat(res)
+import pandas as pd
+from did_multiplegt_stat import DIDMultiplegtStat
+
+data_url = (
+    "https://raw.githubusercontent.com/Credible-Answers/"
+    "py_did_multiplegt_stat/main/tests/data/gazoline_did_multiplegt_stat.dta"
+)
+df = pd.read_stata(data_url)
+
+model = DIDMultiplegtStat(
+    estimator=["aoss", "waoss"],
+    estimation_method="dr",
+    order=1,
+    placebo=3,
+    noextrapolation=True,  # Stata: noextra
+    aoss_vs_waoss=True,
+    asinstata=False,  # scikit-learn LinearRegression and LogisticRegression
+)
+model.fit(df, Y="lngpinc", ID="id", Time="year", D="tau")
+model.summary()
+model.plot()
 ```
+
+## Reproducing Stata's OLS and logit results
+
+Set `asinstata=True` to replace the default scikit-learn nuisance regressions
+with the Stata-faithful implementations: statsmodels OLS and the package's
+Newton-Raphson logit matching Stata's `logit, asis` behavior. The following
+cell runs both examples with the Stata-faithful backend:
+
+```python
+# Uncomment this line when running the example in a Jupyter notebook:
+# %pip install pandas scikit-learn did-multiplegt-stat
+
+import pandas as pd
+from did_multiplegt_stat import DIDMultiplegtStat
+
+data_url = (
+    "https://raw.githubusercontent.com/Credible-Answers/"
+    "py_did_multiplegt_stat/main/tests/data/gazoline_did_multiplegt_stat.dta"
+)
+df = pd.read_stata(data_url)
+
+# Stata-faithful version of Example 1
+stata_model_1 = DIDMultiplegtStat(
+    estimator=["aoss", "waoss"],
+    estimation_method="dr",
+    order=1,
+    placebo=3,
+    aoss_vs_waoss=True,
+    asinstata=True,
+)
+stata_model_1.fit(df, Y="lngca", ID="id", Time="year", D="tau")
+stata_model_1.summary()
+stata_model_1.plot()
+
+# Stata-faithful version of Example 2
+stata_model_2 = DIDMultiplegtStat(
+    estimator=["aoss", "waoss"],
+    estimation_method="dr",
+    order=1,
+    placebo=3,
+    noextrapolation=True,
+    aoss_vs_waoss=True,
+    asinstata=True,
+)
+stata_model_2.fit(df, Y="lngpinc", ID="id", Time="year", D="tau")
+stata_model_2.summary()
+stata_model_2.plot()
+```
+
+## Using machine learning to estimate the nuisance functions
+
+`DIDMultiplegtStat` accepts custom scikit-learn-style estimators for its
+nuisance functions. The examples below use a random forest regressor for the
+outcome-change model and a random forest classifier for the stayer model.
+Supplying these models overrides the built-in OLS and logit regressions,
+regardless of the value of `asinstata`:
+
+```python
+# Uncomment this line when running the example in a Jupyter notebook:
+# %pip install pandas scikit-learn did-multiplegt-stat
+
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+from did_multiplegt_stat import DIDMultiplegtStat
+
+data_url = (
+    "https://raw.githubusercontent.com/Credible-Answers/"
+    "py_did_multiplegt_stat/main/tests/data/gazoline_did_multiplegt_stat.dta"
+)
+df = pd.read_stata(data_url)
+
+# Random-forest version of Example 1
+ml_model_1 = DIDMultiplegtStat(
+    estimator=["aoss", "waoss"],
+    estimation_method="dr",
+    order=1,
+    placebo=3,
+    aoss_vs_waoss=True,
+    model_deltay=RandomForestRegressor(
+        n_estimators=100,
+        random_state=42,
+    ),
+    model_stayer=RandomForestClassifier(
+        n_estimators=100,
+        random_state=42,
+    ),
+)
+ml_model_1.fit(df, Y="lngca", ID="id", Time="year", D="tau")
+ml_model_1.summary()
+ml_model_1.plot()
+
+# Random-forest version of Example 2
+ml_model_2 = DIDMultiplegtStat(
+    estimator=["aoss", "waoss"],
+    estimation_method="dr",
+    order=1,
+    placebo=3,
+    noextrapolation=True,
+    aoss_vs_waoss=True,
+    model_deltay=RandomForestRegressor(
+        n_estimators=100,
+        random_state=42,
+    ),
+    model_stayer=RandomForestClassifier(
+        n_estimators=100,
+        random_state=42,
+    ),
+)
+ml_model_2.fit(df, Y="lngpinc", ID="id", Time="year", D="tau")
+ml_model_2.summary()
+ml_model_2.plot()
+```
+
+Any compatible estimators may be supplied: `model_deltay` must implement
+`fit` and `predict`, while `model_stayer` must implement `fit` and
+`predict_proba`.
 
 ## Backends: `asinstata`
 
@@ -66,7 +233,6 @@ Two regression backends are bundled:
 |--------------------------|----------------------------------------------------------|-----------------------|
 | **scikit-learn (default)** | Default behaviour. Faster, modern numerical stack.       | `asinstata=False`     |
 | **Stata-faithful**       | Need byte-for-byte parity with the Stata ado-file.       | `asinstata=True`      |
-| **Custom sklearn-style** | Want a `RandomForest`, `LassoCV`, etc. as the nuisance.  | `model_deltay=...`, `model_stayer=...` |
 
 Stata parity uses statsmodels OLS + a from-scratch Newton-Raphson logit that
 matches Stata's `logit, asis` defaults; results agree to ~1e-7 relative error.

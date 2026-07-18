@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "did-multiplegt-stat"
-version = "0.1.0"
+version = "0.1.1"
 description = "Heterogeneity-robust difference-in-differences (DID) estimators (AS, WAS, IV-WAS) with stayers, for binary, discrete, or continuous treatments. Python port of the Stata `did_multiplegt_stat` package."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -79,9 +79,9 @@ all = [
 [project.urls]
 Homepage = "https://github.com/chaisemartin/did_multiplegt_stat"
 Documentation = "https://chaisemartin.github.io/did_multiplegt_stat/"
-Repository = "https://github.com/chaisemartin/did_multiplegt_stat"
-Issues = "https://github.com/chaisemartin/did_multiplegt_stat/issues"
-Changelog = "https://github.com/chaisemartin/did_multiplegt_stat/blob/main/CHANGELOG.md"
+Repository = "https://github.com/Credible-Answers/py_did_multiplegt_stat"
+Issues = "https://github.com/Credible-Answers/py_did_multiplegt_stat/issues"
+Changelog = "https://github.com/Credible-Answers/py_did_multiplegt_stat/blob/main/CHANGELOG.md"
 "Stata package" = "https://chaisemartin.github.io/did_multiplegt_stat/"
 
 [tool.hatch.build.targets.wheel]

@@ -105,8 +105,9 @@ jobs:
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" dist/* --clobber
+        run: gh release upload "$RELEASE_TAG" dist/* --clobber --repo "$GH_REPO"
 
   docs:
     name: Deploy tagged documentation

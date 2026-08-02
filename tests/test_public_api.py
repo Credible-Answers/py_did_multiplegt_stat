@@ -139,5 +139,6 @@ def test_release_and_documentation_workflows_are_connected():
     assert "types: [published]" in release
     assert "pypa/gh-action-pypi-publish" in release
     assert "gh release upload" in release
+    assert '--repo "$GH_REPO"' in release
     assert "mkdocs gh-deploy" in release
     assert docs.strip() == '--8<-- "README.md"'

@@ -1,7 +1,7 @@
 # Options
 
-All options exposed by the Stata command are available in Python with the same semantics.
-Below, each Stata option is followed by its Python equivalent and explanation.
+The Python options follow the terminology used in the paper and Stata package.
+Below, each supported Stata option is followed by its Python equivalent and explanation.
 
 ## Main options
 
@@ -9,15 +9,15 @@ Below, each Stata option is followed by its Python equivalent and explanation.
 
 Names of the estimator(s) to compute. Allowed values:
 
-- `"aoss"` — AS (Average Slope), aliased as `"aoss"` in Python.
-- `"waoss"` — WAS (Weighted Average Slope).
-- `"ivwaoss"` — IV-WAS.
+- `"as"` — AS (Average Slope).
+- `"was"` — WAS (Weighted Average Slope).
+- `"iv-was"` — IV-WAS.
 
 You can pass a string or a list:
 
 ```python
-estimator="waoss"
-estimator=["aoss", "waoss"]
+estimator="was"
+estimator=["as", "was"]
 ```
 
 If multiple estimators are requested in Stata, they must be separated by a single space.
@@ -29,6 +29,9 @@ period-$(t-1)$ treatment** (or instrument) value. Only valid for binary or discr
 treatments. With a discrete treatment taking a large number of values, specifying this
 option may be undesirable: there may only be few switchers that can be matched to a stayer
 with the exact same period-$(t-1)$ treatment, restricting the estimation sample.
+
+The package uses doubly robust estimation by default. When `exact_match=True`, regression
+adjustment is selected internally. RA and PS are not user-selectable estimation methods.
 
 ### `order(#/####/########)` — `order=int|list`
 
@@ -58,10 +61,10 @@ the same baseline treatment.
   stayers from $t-3$ to $t-2$, from $t-4$ to $t-3$, ..., and from $t-N-1$ to $t-N$ are
   also reported, always restricting attention to stayers between those pairs of periods.
 
-### `as_vs_was` — `aoss_vs_waoss=True`
+### `as_vs_was` — `as_vs_was=True`
 
 Shows a test that the AS and WAS are equal. Only valid when both AS and WAS estimation is
-requested, i.e. `estimator=["aoss", "waoss"]`.
+requested, i.e. `estimator=["as", "was"]`.
 
 ### `controls(varlist)` — `controls=[...]`
 

@@ -32,7 +32,7 @@ requested):
 | `results` | `dict` | The single main-results block when no `by`/`by_fd`/`by_baseline`. |
 | `results_by_{j}` | `dict` | Per-by-group results block when `by`/`by_fd`/`by_baseline` is set. `j` runs from 1. |
 | `by_levels` | `list` | Levels in order, so `by_levels[j-1]` matches `results_by_{j}`. |
-| `first_stage` | `dict` | Same shape as the top-level dict, returned by the inner first-stage call when `estimator="ivwaoss"`. |
+| `first_stage` | `dict` | Same shape as the top-level dict, returned by the inner first-stage call when `estimator="iv-was"`. |
 | `twfe_comparison` | `pd.DataFrame` | Bootstrap-based TWFE comparison table when `twfe=True`. |
 | `val_quantiles` | `list` | Quantile cut-points when `by_fd` / `by_baseline` is set. |
 | `switch_df` | `pd.DataFrame` | Per-bin switcher count + median `|ΔD|` when `by_fd`. |
@@ -47,4 +47,4 @@ Inside each `results*` block:
 | `N` | `int` | Number of observations used in this block. |
 | `n_clusters` | `int` | Set only when `cluster=` was used. |
 | `pairs` | `int` | Number of consecutive-period pairs in the panel. |
-| `aoss_vs_waoss` | `pd.DataFrame` | Difference-test table when `aoss_vs_waoss=True`. |
+| `as_vs_was` | `pd.DataFrame` | Difference-test table when `as_vs_was=True`. |

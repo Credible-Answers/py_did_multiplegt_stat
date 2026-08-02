@@ -78,7 +78,7 @@ def test_class_api_with_custom_models(gazoline: pd.DataFrame):
     from did_multiplegt_stat import DIDMultiplegtStat
 
     model = DIDMultiplegtStat(
-        estimator=["aoss", "waoss"], order=1, controls=["lngpinc"],
+        estimator=["as", "was"], order=1, controls=["lngpinc"],
         model_deltay=LassoCV(cv=3),
     )
     model.fit(gazoline, Y="lngca", ID="id", Time="year", D="tau")

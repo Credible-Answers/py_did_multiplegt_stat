@@ -12,8 +12,21 @@ net get did_multiplegt_stat
 use gazoline_did_multiplegt_stat.dta, clear
 ```
 
-In Python the same `.dta` file is bundled in the package's test fixtures and can be loaded
-with `pandas.read_stata`.
+In Python, load the same `.dta` file directly from GitHub—no manual download is needed:
+
+```python
+# Uncomment this line when running the examples in a Jupyter notebook:
+# %pip install pandas statsmodels scikit-learn did-multiplegt-stat
+
+import pandas as pd
+from did_multiplegt_stat import DIDMultiplegtStat
+
+data_url = (
+    "https://raw.githubusercontent.com/Credible-Answers/"
+    "py_did_multiplegt_stat/main/tests/data/gazoline_did_multiplegt_stat.dta"
+)
+df = pd.read_stata(data_url)
+```
 
 ## Example 1 — Effect of gasoline taxes on log price
 
@@ -26,16 +39,11 @@ did_multiplegt_stat lngpinc id year tau, or(1) estimator(as was) placebo(3) as_v
 Python — class API:
 
 ```python
-import pandas as pd
-from did_multiplegt_stat import DIDMultiplegtStat
-
-df = pd.read_stata("gazoline_did_multiplegt_stat.dta")
-
 model = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
+    estimator=["as", "was"],
     order=1,
     placebo=3,
-    aoss_vs_waoss=True,
+    as_vs_was=True,
 )
 model.fit(df, Y="lngpinc", ID="id", Time="year", D="tau")
 model.summary()
@@ -48,7 +56,7 @@ from did_multiplegt_stat import did_multiplegt_stat, summary_did_multiplegt_stat
 
 res = did_multiplegt_stat(
     df, Y="lngpinc", ID="id", Time="year", D="tau",
-    estimator=["aoss", "waoss"], order=1, placebo=3, aoss_vs_waoss=True,
+    estimator=["as", "was"], order=1, placebo=3, as_vs_was=True,
 )
 summary_did_multiplegt_stat(res)
 ```
@@ -65,7 +73,7 @@ Python:
 
 ```python
 model = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"], order=1, placebo=3, aoss_vs_waoss=True,
+    estimator=["as", "was"], order=1, placebo=3, as_vs_was=True,
 )
 model.fit(df, Y="lngca", ID="id", Time="year", D="tau")
 model.summary()
@@ -83,7 +91,7 @@ did_multiplegt_stat lngca id year lngpinc tau, or(1) estimator(iv-was) placebo(3
 Python:
 
 ```python
-model = DIDMultiplegtStat(estimator="ivwaoss", order=1, placebo=3)
+model = DIDMultiplegtStat(estimator="iv-was", order=1, placebo=3)
 model.fit(df,
           Y="lngca", ID="id", Time="year",
           D="lngpinc",  # endogenous variable (price)
@@ -113,7 +121,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from did_multiplegt_stat import DIDMultiplegtStat
 
 model = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
+    estimator=["as", "was"],
     model_deltay=RandomForestRegressor(n_estimators=200, random_state=42),
     model_stayer=RandomForestClassifier(n_estimators=200, random_state=42),
 )
@@ -124,14 +132,14 @@ model.summary()
 ## Cluster-robust SEs
 
 ```python
-model = DIDMultiplegtStat(estimator="waoss", cluster="state")
+model = DIDMultiplegtStat(estimator="was", cluster="state")
 model.fit(df, Y="lngca", ID="id", Time="year", D="tau")
 ```
 
 ## By-group analysis (heterogeneity by `|ΔD|`)
 
 ```python
-model = DIDMultiplegtStat(estimator="waoss", by_fd=5)
+model = DIDMultiplegtStat(estimator="was", by_fd=5)
 model.fit(df, Y="lngca", ID="id", Time="year", D="tau")
 model.plot()  # one bar per quintile
 ```
@@ -140,7 +148,7 @@ model.plot()  # one bar per quintile
 
 ```python
 model = DIDMultiplegtStat(
-    estimator="ivwaoss",
+    estimator="iv-was",
     bootstrap=500,
     seed=42,
     twfe={"same_sample": True, "percentile": True},

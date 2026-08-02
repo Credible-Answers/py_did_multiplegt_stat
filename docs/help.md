@@ -19,15 +19,14 @@ stayers, assuming that past treatments do not affect the current outcome.
     from did_multiplegt_stat import DIDMultiplegtStat
 
     model = DIDMultiplegtStat(
-        estimator=...,           # str or list: "aoss" / "waoss" / "ivwaoss"
-        estimation_method=...,   # "ra" / "ps" / "dr"
+        estimator=...,           # str or list: "as" / "was" / "iv-was"
         order=1,                 # int, list[1] | list[4] | list[8]
         exact_match=False,
         noextrapolation=False,
         placebo=0,
         switchers=None,          # None | "up" | "down"
         disaggregate=False,
-        aoss_vs_waoss=False,
+        as_vs_was=False,
         by=None,                 # list[str]
         by_fd=None,              # int
         by_baseline=None,        # int

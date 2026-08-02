@@ -12,6 +12,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from ._naming import estimator_label
+
 
 def _fmt_float7(x) -> str:
     """Format float to 7 decimal places."""
@@ -127,7 +129,7 @@ def print_header(
     N : int
         Number of observations.
     estimation_method : str
-        Estimation method ('ra', 'ps', 'dr').
+        Internal estimation method ('ra' for exact matching, otherwise 'dr').
     estimator_list : list of str
         List of estimators used.
     order : int, optional
@@ -160,7 +162,7 @@ def print_header(
     methods = {"ra": "Reg. Adjustment", "dr": "Doubly Robust", "ps": "Propensity Score"}
     for m in ("waoss", "ivwaoss"):
         if m in estimator_list:
-            strdisplay(f"{m.upper()} Method", methods.get(estimation_method, estimation_method))
+            strdisplay(f"{estimator_label(m)} Method", methods.get(estimation_method, estimation_method))
 
     if not exact_match and order is not None:
         strdisplay("Polynomial Order", order)
@@ -190,12 +192,12 @@ def print_estimator_section(
     disaggregate: bool = False,
 ) -> None:
     """
-    Print a section for a specific estimator (AOSS/WAOSS/IV-WAOSS).
+    Print a section for a specific estimator (AS/WAS/IV-WAS).
 
     Parameters
     ----------
     estimator : str
-        Estimator type ('aoss', 'waoss', 'ivwaoss').
+        Internal estimator identifier.
     table : pd.DataFrame
         Results table.
     estims_map : dict
@@ -206,7 +208,7 @@ def print_estimator_section(
         Whether to show disaggregated results.
     """
     print(f"\n{'-' * 70}")
-    print(f"{' ' * 20}Estimation of {estimator.upper()}(s)")
+    print(f"{' ' * 20}Estimation of {estimator_label(estimator)}")
     print(f"{'-' * 70}")
 
     if isinstance(table, pd.DataFrame):
@@ -243,8 +245,7 @@ def print_placebo_section(
         table_p = placebo_tables.get(pl_idx)
         if isinstance(table_p, pd.DataFrame) and estim_idx < len(table_p):
             row = table_p.iloc[[estim_idx]].copy()
-            suffix = "" if estimator == "aoss" else f"_{estimator}"
-            row.index = [f"Placebo_{pl_idx}{suffix}"]
+            row.index = [f"Placebo_{pl_idx}"]
             # Skip if not computed
             if not (np.isnan(row.iloc[0]["Estimate"]) and row.iloc[0]["Switchers"] == 0):
                 pl_rows.append(row)
@@ -252,22 +253,22 @@ def print_placebo_section(
     if pl_rows:
         pl_combined = pd.concat(pl_rows)
         print(f"\n{'-' * 70}")
-        print(f"{' ' * 15}Estimation of {estimator.upper()}(s) - Placebo(s)")
+        print(f"{' ' * 15}Placebo(s) {estimator_label(estimator)}")
         print(f"{'-' * 70}")
         mat_print(pl_combined)
 
 
-def print_aoss_vs_waoss_section(diff_tab: pd.DataFrame) -> None:
-    """Print the AOSS vs WAOSS difference test results."""
+def print_as_vs_was_section(diff_tab: pd.DataFrame) -> None:
+    """Print the AS vs WAS difference test results."""
     print(f"\n{'-' * 70}")
-    print(f"{' ' * 15}Difference test: AOSS and WAOSS")
+    print(f"{' ' * 15}Difference test: AS and WAS")
     print(f"{'-' * 70}")
-    print("H0: AOSS = WAOSS")
+    print("H0: AS = WAS")
     tab_print(diff_tab)
 
 
 def print_first_stage_section(fs_obj: dict[str, Any]) -> None:
-    """Print first-stage results header for IV-WAOSS."""
+    """Print first-stage results header for IV-WAS."""
     print(f"\n{'=' * 80}")
     print(f"{' ' * 30}First stage estimation")
     print(f"{'=' * 80}")

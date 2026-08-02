@@ -47,7 +47,7 @@ Python with the default scikit-learn OLS and logit regressions:
 
 ```python
 # Uncomment this line when running the example in a Jupyter notebook:
-# %pip install pandas scikit-learn did-multiplegt-stat
+# %pip install pandas statsmodels scikit-learn did-multiplegt-stat
 
 import pandas as pd
 from did_multiplegt_stat import DIDMultiplegtStat
@@ -59,11 +59,10 @@ data_url = (
 df = pd.read_stata(data_url)
 
 model = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
-    estimation_method="dr",
+    estimator=["as", "was"],
     order=1,
     placebo=3,
-    aoss_vs_waoss=True,
+    as_vs_was=True,
     asinstata=False,  # scikit-learn LinearRegression and LogisticRegression
 )
 model.fit(df, Y="lngca", ID="id", Time="year", D="tau")
@@ -83,7 +82,7 @@ Python with the default scikit-learn OLS and logit regressions:
 
 ```python
 # Uncomment this line when running the example in a Jupyter notebook:
-# %pip install pandas scikit-learn did-multiplegt-stat
+# %pip install pandas statsmodels scikit-learn did-multiplegt-stat
 
 import pandas as pd
 from did_multiplegt_stat import DIDMultiplegtStat
@@ -95,12 +94,11 @@ data_url = (
 df = pd.read_stata(data_url)
 
 model = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
-    estimation_method="dr",
+    estimator=["as", "was"],
     order=1,
     placebo=3,
     noextrapolation=True,  # Stata: noextra
-    aoss_vs_waoss=True,
+    as_vs_was=True,
     asinstata=False,  # scikit-learn LinearRegression and LogisticRegression
 )
 model.fit(df, Y="lngpinc", ID="id", Time="year", D="tau")
@@ -117,7 +115,7 @@ cell runs both examples with the Stata-faithful backend:
 
 ```python
 # Uncomment this line when running the example in a Jupyter notebook:
-# %pip install pandas scikit-learn did-multiplegt-stat
+# %pip install pandas statsmodels scikit-learn did-multiplegt-stat
 
 import pandas as pd
 from did_multiplegt_stat import DIDMultiplegtStat
@@ -130,11 +128,10 @@ df = pd.read_stata(data_url)
 
 # Stata-faithful version of Example 1
 stata_model_1 = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
-    estimation_method="dr",
+    estimator=["as", "was"],
     order=1,
     placebo=3,
-    aoss_vs_waoss=True,
+    as_vs_was=True,
     asinstata=True,
 )
 stata_model_1.fit(df, Y="lngca", ID="id", Time="year", D="tau")
@@ -143,12 +140,11 @@ stata_model_1.plot()
 
 # Stata-faithful version of Example 2
 stata_model_2 = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
-    estimation_method="dr",
+    estimator=["as", "was"],
     order=1,
     placebo=3,
     noextrapolation=True,
-    aoss_vs_waoss=True,
+    as_vs_was=True,
     asinstata=True,
 )
 stata_model_2.fit(df, Y="lngpinc", ID="id", Time="year", D="tau")
@@ -166,7 +162,7 @@ regardless of the value of `asinstata`:
 
 ```python
 # Uncomment this line when running the example in a Jupyter notebook:
-# %pip install pandas scikit-learn did-multiplegt-stat
+# %pip install pandas statsmodels scikit-learn did-multiplegt-stat
 
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -181,11 +177,10 @@ df = pd.read_stata(data_url)
 
 # Random-forest version of Example 1
 ml_model_1 = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
-    estimation_method="dr",
+    estimator=["as", "was"],
     order=1,
     placebo=3,
-    aoss_vs_waoss=True,
+    as_vs_was=True,
     model_deltay=RandomForestRegressor(
         n_estimators=100,
         random_state=42,
@@ -201,12 +196,11 @@ ml_model_1.plot()
 
 # Random-forest version of Example 2
 ml_model_2 = DIDMultiplegtStat(
-    estimator=["aoss", "waoss"],
-    estimation_method="dr",
+    estimator=["as", "was"],
     order=1,
     placebo=3,
     noextrapolation=True,
-    aoss_vs_waoss=True,
+    as_vs_was=True,
     model_deltay=RandomForestRegressor(
         n_estimators=100,
         random_state=42,
@@ -237,17 +231,16 @@ Two regression backends are bundled:
 Stata parity uses statsmodels OLS + a from-scratch Newton-Raphson logit that
 matches Stata's `logit, asis` defaults; results agree to ~1e-7 relative error.
 
-## What's supported
+## Main options
 
-All Stata options are exposed, including:
+The Python API follows the terminology used in the paper and Stata package:
 
-- `estimator` (`aoss` / `waoss` / `ivwaoss`)
-- `estimation_method` (`ra` / `ps` / `dr`)
+- `estimator` (`as` / `was` / `iv-was`)
 - `order` (scalar, 4-tuple, or 8-tuple for IV)
 - `placebo(N)` (multi-period placebos)
 - `exact_match`, `noextrapolation`
 - `switchers` (`up` / `down`)
-- `aoss_vs_waoss`
+- `as_vs_was`
 - `by`, `by_fd`, `by_baseline`
 - `controls`, `weight`, `cluster`
 - `other_treatments`
@@ -256,7 +249,11 @@ All Stata options are exposed, including:
 - `twfe` (with `same_sample`, `full_sample`, `percentile`)
 - `cross_validation` (k-fold CV for polynomial order)
 
-See the [full documentation](https://chaisemartin.github.io/did_multiplegt_stat/)
+The package uses doubly robust estimation by default. When `exact_match=True`,
+it uses regression adjustment internally; users do not select RA or PS as a
+separate estimation method.
+
+See the [full Python documentation](https://credible-answers.github.io/py_did_multiplegt_stat/)
 for the help-file style reference.
 
 ## Citation
@@ -271,7 +268,7 @@ A `CITATION.cff` is bundled for tooling integration.
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](LICENSE).
+GPL-3.0-or-later — see the [license](https://github.com/Credible-Answers/py_did_multiplegt_stat/blob/main/LICENSE).
 
 ## Authors
 

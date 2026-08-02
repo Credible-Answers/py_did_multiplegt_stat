@@ -1,6 +1,6 @@
 # Stata-to-Python parity
 
-This page enumerates every Stata option in `did_multiplegt_stat` and its Python equivalent.
+This page maps the supported Stata options in `did_multiplegt_stat` to Python.
 
 ## How to read this page
 
@@ -17,17 +17,19 @@ This page enumerates every Stata option in `did_multiplegt_stat` and its Python 
 | `G` *(2nd)* | `ID="..."` | Unit identifier |
 | `T` *(3rd)* | `Time="..."` | Period |
 | `D` *(4th)* | `D="..."` | Treatment |
-| `Z` *(5th, optional)* | `Z="..."` | Instrument (only with `estimator="ivwaoss"`) |
+| `Z` *(5th, optional)* | `Z="..."` | Instrument (only with `estimator="iv-was"`) |
 
 ## Estimator selection
 
 | Stata | Python | Notes |
 |---|---|---|
-| `estimator(as)` | `estimator="aoss"` | Internal name; the table label is still `AS`. |
-| `estimator(was)` | `estimator="waoss"` | |
-| `estimator(iv-was)` | `estimator="ivwaoss"` | Requires `Z`. |
-| `estimator(as was)` | `estimator=["aoss", "waoss"]` | Both at once. |
-| `estimation_method(ra|ps|dr)` | `estimation_method="ra"` / `"ps"` / `"dr"` | Default `"dr"` (or `"ra"` if `exact_match`). |
+| `estimator(as)` | `estimator="as"` | |
+| `estimator(was)` | `estimator="was"` | |
+| `estimator(iv-was)` | `estimator="iv-was"` | Requires `Z`. |
+| `estimator(as was)` | `estimator=["as", "was"]` | Both at once. |
+
+Python does not expose RA/PS method selection. It uses doubly robust estimation by
+default and activates regression adjustment internally only with `exact_match=True`.
 
 ## Polynomial order
 
@@ -44,7 +46,7 @@ This page enumerates every Stata option in `did_multiplegt_stat` and its Python 
 | `exact_match` | `exact_match=True` | |
 | `noextrapolation` | `noextrapolation=True` | |
 | `switchers(up)` / `switchers(down)` | `switchers="up"` / `"down"` | |
-| `on_placebo_sample` | `on_placebo_sample=True` | Cannot be combined with `placebo` or `ivwaoss`. |
+| `on_placebo_sample` | `on_placebo_sample=True` | Cannot be combined with `placebo` or `iv-was`. |
 
 ## Heterogeneity options
 
@@ -54,7 +56,7 @@ This page enumerates every Stata option in `did_multiplegt_stat` and its Python 
 | `by_fd(K)` | `by_fd=K` | Quantile-bin switchers by `|ΔD|`. |
 | `by_baseline(K)` | `by_baseline=K` | Quantile-bin by `D_{t-1}`. |
 | `disaggregate` | `disaggregate=True` | |
-| `as_vs_was` | `aoss_vs_waoss=True` | Requires both `aoss` and `waoss`. |
+| `as_vs_was` | `as_vs_was=True` | Requires both `as` and `was`. |
 
 ## Controls / weights / cluster
 

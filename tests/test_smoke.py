@@ -6,9 +6,11 @@ import pytest
 
 
 def test_package_imports():
+    from importlib.metadata import version
+
     import did_multiplegt_stat as pkg
 
-    assert pkg.__version__ == "0.1.0"
+    assert pkg.__version__ == version("did-multiplegt-stat")
     # Public surface must be intact.
     for name in [
         "DIDMultiplegtStat",
@@ -23,7 +25,7 @@ def test_package_imports():
 def test_minimal_fit_class_api(gazoline: pd.DataFrame):
     from did_multiplegt_stat import DIDMultiplegtStat
 
-    model = DIDMultiplegtStat(estimator=["aoss", "waoss"], order=1)
+    model = DIDMultiplegtStat(estimator=["as", "was"], order=1)
     model.fit(gazoline, Y="lngca", ID="id", Time="year", D="tau")
 
     assert model.is_fitted_
@@ -36,7 +38,7 @@ def test_minimal_fit_functional_api(gazoline: pd.DataFrame):
 
     res = did_multiplegt_stat(
         gazoline, Y="lngca", ID="id", Time="year", D="tau",
-        estimator=["aoss", "waoss"], order=1,
+        estimator=["as", "was"], order=1,
     )
     assert res["_class"] == "did_multiplegt_stat"
     assert "results" in res
@@ -49,7 +51,7 @@ def test_both_backends_run(gazoline: pd.DataFrame, asinstata: bool):
 
     res = did_multiplegt_stat(
         gazoline, Y="lngca", ID="id", Time="year", D="tau",
-        estimator="waoss", order=1, asinstata=asinstata,
+        estimator="was", order=1, asinstata=asinstata,
     )
     table = res["results"]["table"]
     # WAS-only request still allocates a 3-block table; locate WAS by index name.

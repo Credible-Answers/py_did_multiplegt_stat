@@ -27,6 +27,12 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from scipy.stats import norm as _scipy_norm
 
+from ._naming import (
+    ESTIMATOR_POSITIONS,
+    normalize_estimators,
+    resolve_legacy_options,
+)
+
 # Optional IV regression packages - imported lazily to avoid hard dependencies
 _LINEARMODELS_AVAILABLE = False
 _ECONTOOLS_AVAILABLE = False
@@ -2987,7 +2993,7 @@ def did_multiplegt_stat_main(
         "table": out_table,
         "pairs": int(max_T_XX),
         "N": int(out_table.iloc[0]["Switchers"] + out_table.iloc[0]["Stayers"]) if len(out_table) > 0 and not np.isnan(out_table.iloc[0]["Switchers"]) else int(df["ID_XX"].nunique()),
-        "WAOSS Method": {"ra": "Regression Adjustment", "ps": "Propensity Score", "dr": "Doubly Robust"}.get(estimation_method, estimation_method),
+        "WAS Method": {"ra": "Regression Adjustment", "ps": "Propensity Score", "dr": "Doubly Robust"}.get(estimation_method, estimation_method),
         "Polynomial Order": int(order),
         "Common Support": "No Extrapolation" if noextrapolation else "Extrapolation",
     }
@@ -3001,7 +3007,8 @@ def did_multiplegt_stat_main(
             ret_pl = np.full((len(estims), len(colnames)), np.nan, dtype=float)
             rown_pl = []
             for j, est in enumerate(estims, start=1):
-                rown_pl.append(f"Placebo_{placebo_index}" if j == 1 else f"Placebo_{placebo_index}_{est}")
+                suffix = "" if j == 1 else f"_{estim_display[est]}"
+                rown_pl.append(f"Placebo_{placebo_index}{suffix}")
                 delta = pl_s.get(f"delta_{j}_1_pl_XX", np.nan)
                 se = pl_s.get(f"sd_delta_{j}_1_pl_XX", np.nan)
                 lb = pl_s.get(f"LB_{j}_1_pl_XX", np.nan)
@@ -3015,7 +3022,7 @@ def did_multiplegt_stat_main(
         if "table_placebo_1" in out:
             out["table_placebo"] = out["table_placebo_1"]
 
-    # --- AOSS vs WAOSS test ---
+    # --- AS vs WAS test ---
     if aoss_vs_waoss and aoss_XX == 1 and waoss_XX == 1:
         diff = float(scalars.get("delta_1_1_XX", np.nan)) - float(scalars.get("delta_2_1_XX", np.nan))
         diff_phi = pd.to_numeric(IDs_XX.get("Phi_1_XX", np.nan), errors="coerce") - pd.to_numeric(IDs_XX.get("Phi_2_XX", np.nan), errors="coerce")
@@ -3033,7 +3040,7 @@ def did_multiplegt_stat_main(
                 Phi_abs = 0.5 * (1.0 + math.erf(abs(t_stat) / math.sqrt(2.0)))
                 pval = float(2.0 * (1.0 - Phi_abs))
                 se_d = float(sd_diff / math.sqrt(n_eff))
-                out["aoss_vs_waoss"] = pd.DataFrame({
+                out["as_vs_was"] = pd.DataFrame({
                     "Estimate": [diff], "SE": [sd_diff],
                     "LB CI": [diff - 1.96 * se_d], "UB CI": [diff + 1.96 * se_d],
                     "t stat.": [t_stat], "pval.": [pval],
@@ -3151,13 +3158,12 @@ def did_multiplegt_stat(
     Y: str, ID: str, Time: str, D: str,
     Z: str | None = None,
     estimator: str | Sequence[str] | None = None,
-    estimation_method: str | None = None,
     order: int | list[int] = 1,
     noextrapolation: bool = False,
     placebo: int = 0,
     switchers: str | None = None,
     disaggregate: bool = False,
-    aoss_vs_waoss: bool = False,
+    as_vs_was: bool = False,
     exact_match: bool = False,
     by: Sequence[str] | None = None,
     by_fd: int | None = None,
@@ -3178,6 +3184,7 @@ def did_multiplegt_stat(
     asinstata: bool = False,
     model_deltay=None,
     model_stayer=None,
+    **legacy_options,
 ) -> dict[str, Any]:
     """
     Python interface for did_multiplegt_stat.
@@ -3187,8 +3194,8 @@ def did_multiplegt_stat(
     df : DataFrame - Panel data in long format.
     Y, ID, Time, D : str - Column names for outcome, unit ID, time, treatment.
     Z : str, optional - Instrument variable for IV-WAS.
-    estimator : str or list - 'aoss', 'waoss', 'ivwaoss'.
-    estimation_method : str - 'ra', 'ps', 'dr' (default: 'dr' without exact_match).
+    estimator : str or list - 'as', 'was', 'iv-was'.
+    as_vs_was : bool - Test equality of the AS and WAS estimators.
     order : int or list of 1/4/8 ints - Polynomial order(s). 8 ints for IV: first 4=first-stage, last 4=reduced-form.
     placebo : int - Number of placebos (0 = none).
     iv_method : str - IV regression package: 'manual' (default, two OLS), 'linearmodels', or 'econtools'.
@@ -3217,18 +3224,20 @@ def did_multiplegt_stat(
         provided, overrides the default logit model (regardless of asinstata).
         Example: RandomForestClassifier(n_estimators=100).
     """
+    as_vs_was = resolve_legacy_options(
+        as_vs_was=as_vs_was,
+        legacy_options=legacy_options,
+    )
+
     if switchers is not None and switchers not in ("up", "down"):
         raise ValueError("Switchers must be None, 'up' or 'down'.")
 
-    # Default estimator
-    if estimator is None and Z is None:
-        estimator_list = ["aoss", "waoss"]
-    elif estimator is None and Z is not None:
-        estimator_list = ["ivwaoss"]
-    elif isinstance(estimator, str):
-        estimator_list = [estimator]
-    else:
-        estimator_list = list(estimator)
+    # Translate the paper/Stata terminology at the public boundary.  The
+    # numerical core retains its historical identifiers to minimize risk.
+    public_estimator_list, estimator_list = normalize_estimators(
+        estimator,
+        has_instrument=Z is not None,
+    )
 
     # Parse multi-order
     order_reg = order_logit_bis = order_logit_Plus = order_logit_Minus = None
@@ -3267,21 +3276,22 @@ def did_multiplegt_stat(
     if trimming > 1:
         trimming = trimming / 100.0
 
-    # Estimation method override
+    # Estimation method is intentionally internal: DR is the package default,
+    # while exact matching uses RA as required by the estimator definition.
     if exact_match:
         estimation_method = "ra"
         if noextrapolation:
             noextrapolation = False
         order_scalar = 1
         order_reg = order_logit_bis = order_logit_Plus = order_logit_Minus = None
-    elif estimation_method is None:
+    else:
         estimation_method = "dr"
 
     # Validation
     if "ivwaoss" in estimator_list and any(e in ("aoss", "waoss") for e in estimator_list):
-        raise ValueError("Cannot combine AOSS/WAOSS with IV-WAOSS.")
+        raise ValueError("Cannot combine AS/WAS with IV-WAS.")
     if "ivwaoss" in estimator_list and Z is None:
-        raise ValueError("IV variable Z required for ivwaoss.")
+        raise ValueError("IV variable Z is required for IV-WAS.")
     if by is not None and by_fd is not None:
         raise ValueError("Cannot specify both by and by_fd.")
     if by is not None and by_baseline is not None:
@@ -3316,12 +3326,13 @@ def did_multiplegt_stat(
     out: dict[str, Any] = {
         "args": {
             "Y": Y, "ID": ID, "Time": Time, "D": D, "Z": Z,
-            "estimator": estimator_list, "estimation_method": estimation_method,
+            "estimator": public_estimator_list,
+            "_estimation_method": estimation_method,
             "order": order_scalar, "order_original": order_display,
             "order_fs": order_fs_display, "order_rf": order_rf_display,
             "noextrapolation": noextrapolation,
             "placebo": placebo, "switchers": switchers,
-            "disaggregate": disaggregate, "aoss_vs_waoss": aoss_vs_waoss,
+            "disaggregate": disaggregate, "as_vs_was": as_vs_was,
             "exact_match": exact_match, "by": list(by) if by else None,
             "by_fd": by_fd, "by_baseline": by_baseline,
             "other_treatments": other_treatments_list,
@@ -3392,8 +3403,7 @@ def did_multiplegt_stat(
         print("=" * 80)
         fs_result = did_multiplegt_stat(
             df, Y=D, ID=ID, Time=Time, D=Z, Z=None,
-            estimator="waoss",
-            estimation_method=estimation_method,
+            estimator="was",
             order=fs_order_arg,
             noextrapolation=noextrapolation,
             placebo=placebo, switchers=switchers,
@@ -3421,7 +3431,7 @@ def did_multiplegt_stat(
             estimator=estimator_list, estimation_method=estimation_method,
             order=order_scalar, noextrapolation=noextrapolation,
             placebo=placebo, switchers=switchers,
-            disaggregate=disaggregate, aoss_vs_waoss=aoss_vs_waoss,
+            disaggregate=disaggregate, aoss_vs_waoss=as_vs_was,
             exact_match=exact_match, weight=weight, cluster=cluster,
             by_fd_opt=by_fd_opt, other_treatments=other_treatments_list,
             controls=controls_list, cross_fitting=cross_fitting,
@@ -3767,7 +3777,11 @@ def strdisplay(label, value, width=46):
 
 def summary_did_multiplegt_stat(obj: dict[str, Any]):
     args = obj.get("args", {})
-    estim_list = args.get("estimator", ["aoss", "waoss"])
+    _, estim_list = normalize_estimators(
+        args.get("estimator", ["as", "was"]),
+        has_instrument=args.get("Z") is not None,
+        warn_legacy=False,
+    )
     by_var = args.get("by")
     by_fd = args.get("by_fd")
     by_baseline = args.get("by_baseline")
@@ -3779,7 +3793,7 @@ def summary_did_multiplegt_stat(obj: dict[str, Any]):
         by_levs = list(obj.get("by_levels", []))
         by_obj = [f"results_by_{j + 1}" for j in range(len(by_levs))]
 
-    estims_map = {"aoss": 0, "waoss": 1, "ivwaoss": 2}
+    estims_map = ESTIMATOR_POSITIONS
     # Display names matching Stata
     estim_titles = {
         "aoss": "Average Slope (AS)",
@@ -3810,7 +3824,7 @@ def summary_did_multiplegt_stat(obj: dict[str, Any]):
         print(f"{' ' * 35}Number of observations{' ' * 5}={' ' * (17 - len(str(int(N))))}{int(N)}")
 
         methods = {"ra": "reg. adjustment", "dr": "doubly-robust", "ps": "propensity-score"}
-        method = args.get("estimation_method", "dr")
+        method = args.get("_estimation_method", "ra" if args.get("exact_match") else "dr")
 
         # Show estimation method - Stata shows different label for IV-WAS
         if "ivwaoss" in estim_list:
@@ -3893,8 +3907,8 @@ def summary_did_multiplegt_stat(obj: dict[str, Any]):
                     print(f"{'-' * 80}")
                     mat_print(pl_combined)
 
-        if args.get("aoss_vs_waoss"):
-            diff_tab = print_obj.get("aoss_vs_waoss", None)
+        if args.get("as_vs_was"):
+            diff_tab = print_obj.get("as_vs_was", None)
             if diff_tab is not None:
                 print(" ")
                 print(f"{'-' * 80}")

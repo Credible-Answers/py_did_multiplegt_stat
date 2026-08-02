@@ -43,12 +43,11 @@ from did_multiplegt_stat import DIDMultiplegtStat
 
 model = DIDMultiplegtStat(
     # ---- main estimator selection ----
-    estimator=None,           # "aoss" / "waoss" / "ivwaoss" or list
-    estimation_method=None,   # "ra" / "ps" / "dr"
+    estimator=None,           # "as" / "was" / "iv-was" or list
     order=1,                  # int or list of 1, 4, or 8 ints
     exact_match=False,
     noextrapolation=False,
-    aoss_vs_waoss=False,
+    as_vs_was=False,
 
     # ---- testing parallel trends ----
     placebo=0,
@@ -111,7 +110,7 @@ full table.
 | Stata | Python |
 |---|---|
 | `weights(varname)` | `weight="varname"` |
-| `as_vs_was` | `aoss_vs_waoss=True` |
+| `as_vs_was` | `as_vs_was=True` |
 | `cluster(varlist)` | `cluster="..."` *(single var)* |
 | `bysort g:` prefix | `by=["g"]` |
 | `or(1)` | `order=1` |

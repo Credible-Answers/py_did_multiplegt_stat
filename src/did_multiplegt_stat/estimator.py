@@ -13,9 +13,16 @@ from typing import Any
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from ._naming import (
+    ESTIMATOR_POSITIONS,
+    normalize_estimators,
+    resolve_legacy_options,
+    to_internal_estimator,
+    to_public_estimator,
+)
 from .core import did_multiplegt_stat as _did_multiplegt_stat
 from .display import (
-    print_aoss_vs_waoss_section,
+    print_as_vs_was_section,
     print_estimator_section,
     print_first_stage_section,
     print_header,
@@ -33,17 +40,15 @@ class DIDMultiplegtStat:
     """
     Difference-in-Differences estimator following de Chaisemartin & D'Haultfeuille (2024).
 
-    Implements AS (Average Slope), WAS (Weighted Average Slope), and IV-WAS estimators
-    with doubly-robust, regression-adjustment, and propensity-score methods.
+    Implements AS (Average Slope), WAS (Weighted Average Slope), and IV-WAS
+    estimators. Doubly robust estimation is used by default; exact matching
+    activates regression adjustment internally.
 
     Parameters
     ----------
     estimator : str or list of str, optional
-        Estimator type(s): 'aoss', 'waoss', 'ivwaoss'. Default: ['aoss', 'waoss'] or
-        ['ivwaoss'] if Z is provided in fit().
-    estimation_method : str, optional
-        Method: 'ra' (regression adjustment), 'ps' (propensity score), 'dr' (doubly robust).
-        Default: 'dr' without exact_match, 'ra' with exact_match.
+        Estimator type(s): 'as', 'was', or 'iv-was'. Default: ['as', 'was'],
+        or ['iv-was'] if Z is provided in fit().
     order : int or list of int, default=1
         Polynomial order. Can be single int or list of 4 (reg, logit_bis, logit_Plus,
         logit_Minus) or 8 (4 for first-stage + 4 for reduced-form for IV-WAS).
@@ -55,8 +60,8 @@ class DIDMultiplegtStat:
         Restrict to 'up' (increasing treatment) or 'down' (decreasing treatment).
     disaggregate : bool, default=False
         Report period-specific estimates.
-    aoss_vs_waoss : bool, default=False
-        Test equality between AOSS and WAOSS.
+    as_vs_was : bool, default=False
+        Test equality between AS and WAS.
     exact_match : bool, default=False
         Use exact matching on baseline treatment.
     by : list of str, optional
@@ -110,15 +115,15 @@ class DIDMultiplegtStat:
     Examples
     --------
     >>> import pandas as pd
-    >>> from stat_python import DIDMultiplegtStat
+    >>> from did_multiplegt_stat import DIDMultiplegtStat
     >>>
     >>> # Basic usage
-    >>> model = DIDMultiplegtStat(estimator=['aoss', 'waoss'])
+    >>> model = DIDMultiplegtStat(estimator=['as', 'was'])
     >>> model.fit(df, Y='outcome', ID='unit_id', Time='time', D='treatment')
     >>> model.summary()
     >>>
     >>> # With IV
-    >>> model_iv = DIDMultiplegtStat(estimator='ivwaoss')
+    >>> model_iv = DIDMultiplegtStat(estimator='iv-was')
     >>> model_iv.fit(df, Y='outcome', ID='unit_id', Time='time', D='treatment', Z='instrument')
     >>> model_iv.plot()
     """
@@ -126,13 +131,12 @@ class DIDMultiplegtStat:
     def __init__(
         self,
         estimator: str | Sequence[str] | None = None,
-        estimation_method: str | None = None,
         order: int | list[int] = 1,
         noextrapolation: bool = False,
         placebo: int = 0,
         switchers: str | None = None,
         disaggregate: bool = False,
-        aoss_vs_waoss: bool = False,
+        as_vs_was: bool = False,
         exact_match: bool = False,
         by: Sequence[str] | None = None,
         by_fd: int | None = None,
@@ -152,16 +156,26 @@ class DIDMultiplegtStat:
         asinstata: bool = False,
         model_deltay: Any | None = None,
         model_stayer: Any | None = None,
+        **legacy_options: Any,
     ) -> None:
         """Initialize the estimator with configuration parameters."""
-        self.estimator = estimator
-        self.estimation_method = estimation_method
+        as_vs_was = resolve_legacy_options(
+            as_vs_was=as_vs_was,
+            legacy_options=legacy_options,
+        )
+        if estimator is None:
+            self.estimator = None
+        elif isinstance(estimator, str):
+            self.estimator = to_public_estimator(estimator)
+        else:
+            public_estimators, _ = normalize_estimators(estimator)
+            self.estimator = public_estimators
         self.order = order
         self.noextrapolation = noextrapolation
         self.placebo = placebo
         self.switchers = switchers
         self.disaggregate = disaggregate
-        self.aoss_vs_waoss = aoss_vs_waoss
+        self.as_vs_was = as_vs_was
         self.exact_match = exact_match
         self.by = by
         self.by_fd = by_fd
@@ -252,13 +266,12 @@ class DIDMultiplegtStat:
             D=D,
             Z=Z,
             estimator=self.estimator,
-            estimation_method=self.estimation_method,
             order=self.order,
             noextrapolation=self.noextrapolation,
             placebo=self.placebo,
             switchers=self.switchers,
             disaggregate=self.disaggregate,
-            aoss_vs_waoss=self.aoss_vs_waoss,
+            as_vs_was=self.as_vs_was,
             exact_match=self.exact_match,
             by=self.by,
             by_fd=self.by_fd,
@@ -352,9 +365,11 @@ class DIDMultiplegtStat:
         self._check_is_fitted()
 
         args = self.results_.get("args", {})
-        estim_list = args.get("estimator", ["aoss", "waoss"])
-        if isinstance(estim_list, str):
-            estim_list = [estim_list]
+        _, estim_list = normalize_estimators(
+            args.get("estimator", ["as", "was"]),
+            has_instrument=args.get("Z") is not None,
+            warn_legacy=False,
+        )
 
         by_var = args.get("by")
         by_fd = args.get("by_fd")
@@ -367,7 +382,7 @@ class DIDMultiplegtStat:
             by_levs = list(self.results_.get("by_levels", []))
             by_obj = [f"results_by_{j + 1}" for j in range(len(by_levs))]
 
-        estims_map = {"aoss": 0, "waoss": 1, "ivwaoss": 2}
+        estims_map = ESTIMATOR_POSITIONS
 
         for idx, key in enumerate(by_obj):
             print_obj = self.results_.get(key)
@@ -379,7 +394,10 @@ class DIDMultiplegtStat:
             if show_header:
                 print_header(
                     N=print_obj.get("N", 0),
-                    estimation_method=args.get("estimation_method", "dr"),
+                    estimation_method=args.get(
+                        "_estimation_method",
+                        "ra" if args.get("exact_match") else "dr",
+                    ),
                     estimator_list=estim_list,
                     order=args.get("order"),
                     exact_match=args.get("exact_match", False),
@@ -420,13 +438,13 @@ class DIDMultiplegtStat:
                             placebo_n=placebo_n,
                         )
 
-            # AOSS vs WAOSS test
-            if args.get("aoss_vs_waoss"):
-                diff_tab = print_obj.get("aoss_vs_waoss")
+            # AS vs WAS test
+            if args.get("as_vs_was"):
+                diff_tab = print_obj.get("as_vs_was")
                 if diff_tab is not None:
-                    print_aoss_vs_waoss_section(diff_tab)
+                    print_as_vs_was_section(diff_tab)
 
-        # First-stage results (IV-WAOSS)
+        # First-stage results (IV-WAS)
         if self.first_stage_ is not None:
             print_first_stage_section(self.first_stage_.results_)
             self.first_stage_.summary(show_header=show_header, show_placebo=show_placebo)
@@ -460,7 +478,7 @@ class DIDMultiplegtStat:
         Parameters
         ----------
         estimator : str, optional
-            Which estimator to plot ('aoss', 'waoss', 'ivwaoss'). If None, plots all.
+            Which estimator to plot ('as', 'was', or 'iv-was'). If None, plots all.
         show_ci : bool, default=True
             Display confidence interval bands.
         ci_alpha : float, default=0.2
@@ -468,7 +486,7 @@ class DIDMultiplegtStat:
         figsize : tuple, default=(10, 6)
             Figure size in inches.
         colors : dict, optional
-            Custom colors for estimators {'aoss': 'blue', 'waoss': 'red', ...}.
+            Custom colors for estimators {'as': 'blue', 'was': 'red', ...}.
         title : str, optional
             Custom title. Default: auto-generated based on estimator.
         xlabel : str, default="Relative Time"
@@ -495,7 +513,7 @@ class DIDMultiplegtStat:
         if self.by_levels_ is not None and len(self.by_levels_) > 1:
             return plot_by_groups(
                 results=self.results_,
-                estimator=estimator or "aoss",
+                estimator=estimator or "as",
                 show_ci=show_ci,
                 ci_alpha=ci_alpha,
                 figsize=figsize,
@@ -577,13 +595,12 @@ class DIDMultiplegtStat:
         """
         return {
             "estimator": self.estimator,
-            "estimation_method": self.estimation_method,
             "order": self.order,
             "noextrapolation": self.noextrapolation,
             "placebo": self.placebo,
             "switchers": self.switchers,
             "disaggregate": self.disaggregate,
-            "aoss_vs_waoss": self.aoss_vs_waoss,
+            "as_vs_was": self.as_vs_was,
             "exact_match": self.exact_match,
             "by": self.by,
             "by_fd": self.by_fd,
@@ -619,6 +636,26 @@ class DIDMultiplegtStat:
         self : DIDMultiplegtStat
             Estimator instance.
         """
+        legacy = {
+            key: params.pop(key)
+            for key in ("aoss_vs_waoss", "estimation_method")
+            if key in params
+        }
+        if legacy:
+            self.as_vs_was = resolve_legacy_options(
+                as_vs_was=self.as_vs_was,
+                legacy_options=legacy,
+            )
+
+        if "estimator" in params:
+            estimator = params["estimator"]
+            if estimator is None:
+                params["estimator"] = None
+            elif isinstance(estimator, str):
+                params["estimator"] = to_public_estimator(estimator)
+            else:
+                params["estimator"], _ = normalize_estimators(estimator)
+
         for key, value in params.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -650,7 +687,7 @@ class DIDMultiplegtStat:
         Parameters
         ----------
         estimator : str, optional
-            Which estimator ('aoss', 'waoss', 'ivwaoss'). Default: first available.
+            Which estimator ('as', 'was', or 'iv-was'). Default: first available.
 
         Returns
         -------
@@ -663,14 +700,18 @@ class DIDMultiplegtStat:
             return pd.Series()
 
         args = self.results_.get("args", {})
-        estim_list = args.get("estimator", ["aoss", "waoss"])
-        if isinstance(estim_list, str):
-            estim_list = [estim_list]
+        _, estim_list = normalize_estimators(
+            args.get("estimator", ["as", "was"]),
+            has_instrument=args.get("Z") is not None,
+            warn_legacy=False,
+        )
 
         if estimator is None:
             estimator = estim_list[0]
+        else:
+            estimator = to_internal_estimator(estimator)
 
-        estims_map = {"aoss": 0, "waoss": 1, "ivwaoss": 2}
+        estims_map = ESTIMATOR_POSITIONS
         pairs = int(self.results_.get("results", self.results_).get("pairs", 1))
 
         l_bound = estims_map.get(estimator, 0) * pairs
@@ -707,14 +748,18 @@ class DIDMultiplegtStat:
             return pd.DataFrame()
 
         args = self.results_.get("args", {})
-        estim_list = args.get("estimator", ["aoss", "waoss"])
-        if isinstance(estim_list, str):
-            estim_list = [estim_list]
+        _, estim_list = normalize_estimators(
+            args.get("estimator", ["as", "was"]),
+            has_instrument=args.get("Z") is not None,
+            warn_legacy=False,
+        )
 
         if estimator is None:
             estimator = estim_list[0]
+        else:
+            estimator = to_internal_estimator(estimator)
 
-        estims_map = {"aoss": 0, "waoss": 1, "ivwaoss": 2}
+        estims_map = ESTIMATOR_POSITIONS
         pairs = int(self.results_.get("results", self.results_).get("pairs", 1))
 
         l_bound = estims_map.get(estimator, 0) * pairs

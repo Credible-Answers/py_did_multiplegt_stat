@@ -13,6 +13,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from ._naming import (
+    ESTIMATOR_POSITIONS,
+    estimator_label,
+    normalize_color_mapping,
+    normalize_estimators,
+    to_internal_estimator,
+)
+
 # Default colors for by-group analysis (matching Stata)
 BY_GROUP_COLORS = ["blue", "red", "green", "magenta", "gold", "lime", "cyan", "orange"]
 
@@ -152,7 +160,7 @@ def plot_event_study(
     results : dict
         Results dictionary from DIDMultiplegtStat.fit().
     estimator : str, optional
-        Which estimator to plot ('aoss', 'waoss', 'ivwaoss').
+        Which estimator to plot ('as', 'was', or 'iv-was').
         If None, plots all available estimators.
     show_ci : bool, default=True
         Display confidence interval bands.
@@ -184,16 +192,19 @@ def plot_event_study(
     """
     # Get estimator list from results
     args = results.get("args", {})
-    estimator_list = args.get("estimator", ["aoss", "waoss"])
-    if isinstance(estimator_list, str):
-        estimator_list = [estimator_list]
+    _, estimator_list = normalize_estimators(
+        args.get("estimator", ["as", "was"]),
+        has_instrument=args.get("Z") is not None,
+        warn_legacy=False,
+    )
 
     # Filter to requested estimator(s)
     if estimator is not None:
-        estimator_list = [e for e in estimator_list if e == estimator]
+        requested = to_internal_estimator(estimator)
+        estimator_list = [e for e in estimator_list if e == requested]
 
     # Use custom colors if provided, otherwise defaults
-    color_map = colors if colors else ESTIMATOR_COLORS
+    color_map = {**ESTIMATOR_COLORS, **(normalize_color_mapping(colors) or {})}
 
     # Get table data
     # Try to get by-level results first, then fall back to main results
@@ -208,7 +219,7 @@ def plot_event_study(
         ax.text(0.5, 0.5, "No data to plot", ha='center', va='center', fontsize=14)
         return fig
 
-    estims_map = {"aoss": 0, "waoss": 1, "ivwaoss": 2}
+    estims_map = ESTIMATOR_POSITIONS
 
     if separate_panels and len(estimator_list) > 1:
         # Create separate panels for each estimator
@@ -232,7 +243,7 @@ def plot_event_study(
                 ci_alpha=ci_alpha,
                 show_zero_line=show_zero_line,
             )
-            _format_axis(ax, xlabel=xlabel, ylabel=ylabel, title=est.upper())
+            _format_axis(ax, xlabel=xlabel, ylabel=ylabel, title=estimator_label(est))
 
         plt.tight_layout()
 
@@ -254,7 +265,7 @@ def plot_event_study(
                 show_ci=show_ci,
                 ci_alpha=ci_alpha,
                 show_zero_line=show_zero_line,
-                label=est.upper(),
+                label=estimator_label(est),
             )
 
         _format_axis(ax, xlabel=xlabel, ylabel=ylabel, title=title)
@@ -359,7 +370,7 @@ def _plot_single_estimator(
 
 def plot_by_groups(
     results: dict[str, Any],
-    estimator: str = "aoss",
+    estimator: str = "as",
     show_ci: bool = True,
     ci_alpha: float = 0.15,
     figsize: tuple[float, float] = (12, 6),
@@ -377,7 +388,7 @@ def plot_by_groups(
     ----------
     results : dict
         Results dictionary with by-group results.
-    estimator : str, default="aoss"
+    estimator : str, default="as"
         Which estimator to plot.
     show_ci : bool, default=True
         Display confidence interval bands.
@@ -405,11 +416,11 @@ def plot_by_groups(
     """
     by_levels = results.get("by_levels", [])
     color_list = colors if colors else BY_GROUP_COLORS
+    estimator_internal = to_internal_estimator(estimator)
 
     fig, ax = plt.subplots(figsize=figsize)
 
-    estims_map = {"aoss": 0, "waoss": 1, "ivwaoss": 2}
-    estim_idx = estims_map.get(estimator, 0)
+    estim_idx = ESTIMATOR_POSITIONS[estimator_internal]
 
     for i, level in enumerate(by_levels):
         result_key = f"results_by_{i + 1}"
@@ -445,7 +456,7 @@ def plot_by_groups(
     ax.set_xticklabels([str(l) for l in by_levels], rotation=45, ha='right')
 
     _format_axis(ax, xlabel=xlabel, ylabel=ylabel,
-                 title=title or f"{estimator.upper()} by Group")
+                 title=title or f"{estimator_label(estimator_internal)} by Group")
     ax.legend(title="Group", loc='best')
 
     plt.tight_layout()
@@ -488,9 +499,12 @@ def plot_comparison(
         Matplotlib figure.
     """
     args = results.get("args", {})
-    estimator_list = estimators or args.get("estimator", ["aoss", "waoss"])
-    if isinstance(estimator_list, str):
-        estimator_list = [estimator_list]
+    selected = estimators if estimators is not None else args.get("estimator", ["as", "was"])
+    _, estimator_list = normalize_estimators(
+        selected,
+        has_instrument=args.get("Z") is not None,
+        warn_legacy=estimators is not None,
+    )
 
     print_obj = results.get("results", results)
     table = print_obj.get("table")
@@ -500,7 +514,7 @@ def plot_comparison(
         ax.text(0.5, 0.5, "No data to plot", ha='center', va='center')
         return fig
 
-    estims_map = {"aoss": 0, "waoss": 1, "ivwaoss": 2}
+    estims_map = ESTIMATOR_POSITIONS
     pairs = int(print_obj.get("pairs", 1))
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -523,7 +537,7 @@ def plot_comparison(
         x_pos.append(i)
         y_vals.append(y)
         errors.append(1.96 * se)
-        labels.append(est.upper())
+        labels.append(estimator_label(est))
         colors.append(ESTIMATOR_COLORS.get(est, "blue"))
 
     ax.bar(x_pos, y_vals, color=colors, alpha=0.7)

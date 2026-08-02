@@ -58,11 +58,11 @@ def _compare(res_true: dict, res_false: dict, max_rel_pct: float,
 # ----------------------------------------------------------------------
 # V.01 -- AOSS+WAOSS with controls, Y=lngca
 # ----------------------------------------------------------------------
-def test_vignette_V01_aoss_waoss_controls(gazoline: pd.DataFrame):
+def test_vignette_V01_as_was_controls(gazoline: pd.DataFrame):
     from did_multiplegt_stat import did_multiplegt_stat
 
     args = dict(Y="lngca", ID="id", Time="year", D="tau", order=1,
-                aoss_vs_waoss=True, controls=["lngpinc"])
+                as_vs_was=True, controls=["lngpinc"])
     r_t = did_multiplegt_stat(gazoline, **args, asinstata=True)
     r_f = did_multiplegt_stat(gazoline, **args, asinstata=False)
     _compare(r_t, r_f, max_rel_pct=15.0)
@@ -71,11 +71,11 @@ def test_vignette_V01_aoss_waoss_controls(gazoline: pd.DataFrame):
 # ----------------------------------------------------------------------
 # V.02 -- AOSS+WAOSS with controls, Y=lngpinc
 # ----------------------------------------------------------------------
-def test_vignette_V02_aoss_waoss_controls_lngpinc(gazoline: pd.DataFrame):
+def test_vignette_V02_as_was_controls_lngpinc(gazoline: pd.DataFrame):
     from did_multiplegt_stat import did_multiplegt_stat
 
     args = dict(Y="lngpinc", ID="id", Time="year", D="tau", order=1,
-                aoss_vs_waoss=True, controls=["lngpinc"])
+                as_vs_was=True, controls=["lngpinc"])
     r_t = did_multiplegt_stat(gazoline, **args, asinstata=True)
     r_f = did_multiplegt_stat(gazoline, **args, asinstata=False)
     _compare(r_t, r_f, max_rel_pct=15.0)
@@ -85,11 +85,11 @@ def test_vignette_V02_aoss_waoss_controls_lngpinc(gazoline: pd.DataFrame):
 # V.03 -- IV-WAOSS with bootstrap
 # ----------------------------------------------------------------------
 @pytest.mark.slow
-def test_vignette_V03_iv_waoss_bootstrap(gazoline: pd.DataFrame):
+def test_vignette_V03_iv_was_bootstrap(gazoline: pd.DataFrame):
     from did_multiplegt_stat import did_multiplegt_stat
 
     args = dict(Y="lngca", ID="id", Time="year", D="lngpinc",
-                Z="tau", estimator="ivwaoss", order=1,
+                Z="tau", estimator="iv-was", order=1,
                 controls=["lngpinc"], bootstrap=5, seed=1)
     r_t = did_multiplegt_stat(gazoline, **args, asinstata=True)
     r_f = did_multiplegt_stat(gazoline, **args, asinstata=False)
@@ -100,11 +100,11 @@ def test_vignette_V03_iv_waoss_bootstrap(gazoline: pd.DataFrame):
 # ----------------------------------------------------------------------
 # V.04 -- WAOSS on_placebo_sample, Y=lngca
 # ----------------------------------------------------------------------
-def test_vignette_V04_waoss_on_placebo_sample_lngca(gazoline: pd.DataFrame):
+def test_vignette_V04_was_on_placebo_sample_lngca(gazoline: pd.DataFrame):
     from did_multiplegt_stat import did_multiplegt_stat
 
     args = dict(Y="lngca", ID="id", Time="year", D="tau",
-                estimator="waoss", order=1, controls=["lngpinc"],
+                estimator="was", order=1, controls=["lngpinc"],
                 on_placebo_sample=True)
     r_t = did_multiplegt_stat(gazoline, **args, asinstata=True)
     r_f = did_multiplegt_stat(gazoline, **args, asinstata=False)
@@ -114,11 +114,11 @@ def test_vignette_V04_waoss_on_placebo_sample_lngca(gazoline: pd.DataFrame):
 # ----------------------------------------------------------------------
 # V.05 -- WAOSS on_placebo_sample, Y=lngpinc
 # ----------------------------------------------------------------------
-def test_vignette_V05_waoss_on_placebo_sample_lngpinc(gazoline: pd.DataFrame):
+def test_vignette_V05_was_on_placebo_sample_lngpinc(gazoline: pd.DataFrame):
     from did_multiplegt_stat import did_multiplegt_stat
 
     args = dict(Y="lngpinc", ID="id", Time="year", D="tau",
-                estimator="waoss", order=1, controls=["lngpinc"],
+                estimator="was", order=1, controls=["lngpinc"],
                 on_placebo_sample=True)
     r_t = did_multiplegt_stat(gazoline, **args, asinstata=True)
     r_f = did_multiplegt_stat(gazoline, **args, asinstata=False)

@@ -10,7 +10,7 @@ import pytest
 def fitted_model(gazoline: pd.DataFrame):
     from did_multiplegt_stat import DIDMultiplegtStat
 
-    model = DIDMultiplegtStat(estimator=["aoss", "waoss"], order=1, placebo=1)
+    model = DIDMultiplegtStat(estimator=["as", "was"], order=1, placebo=1)
     model.fit(gazoline, Y="lngca", ID="id", Time="year", D="tau")
     return model
 
@@ -29,7 +29,7 @@ def test_repr_after_fit(fitted_model):
 def test_summary_runs(fitted_model, capsys):
     fitted_model.summary()
     out = capsys.readouterr().out
-    assert "Estimation of AOSS" in out or "Estimation of WAOSS" in out
+    assert "Estimation of AS" in out or "Estimation of WAS" in out
 
 
 def test_to_dataframe(fitted_model):
@@ -40,13 +40,13 @@ def test_to_dataframe(fitted_model):
 
 
 def test_get_coefficients(fitted_model):
-    coeffs = fitted_model.get_coefficients(estimator="aoss")
+    coeffs = fitted_model.get_coefficients(estimator="as")
     assert isinstance(coeffs, pd.Series)
     assert len(coeffs) >= 1
 
 
 def test_get_confidence_intervals(fitted_model):
-    ci = fitted_model.get_confidence_intervals(estimator="waoss")
+    ci = fitted_model.get_confidence_intervals(estimator="was")
     assert "LB CI" in ci.columns
     assert "UB CI" in ci.columns
 
@@ -54,9 +54,9 @@ def test_get_confidence_intervals(fitted_model):
 def test_get_set_params():
     from did_multiplegt_stat import DIDMultiplegtStat
 
-    model = DIDMultiplegtStat(estimator="waoss", order=2, placebo=2)
+    model = DIDMultiplegtStat(estimator="was", order=2, placebo=2)
     params = model.get_params()
-    assert params["estimator"] == "waoss"
+    assert params["estimator"] == "was"
     assert params["order"] == 2
     assert params["placebo"] == 2
 
@@ -89,14 +89,14 @@ def test_plot_before_fit_raises():
 def test_invalid_estimator_combo(gazoline: pd.DataFrame):
     from did_multiplegt_stat import DIDMultiplegtStat
 
-    model = DIDMultiplegtStat(estimator=["aoss", "ivwaoss"])
+    model = DIDMultiplegtStat(estimator=["as", "iv-was"])
     with pytest.raises(ValueError, match="Cannot combine"):
         model.fit(gazoline, Y="lngca", ID="id", Time="year", D="tau", Z="lngpinc")
 
 
-def test_ivwaoss_without_z_raises(gazoline: pd.DataFrame):
+def test_iv_was_without_z_raises(gazoline: pd.DataFrame):
     from did_multiplegt_stat import DIDMultiplegtStat
 
-    model = DIDMultiplegtStat(estimator="ivwaoss")
+    model = DIDMultiplegtStat(estimator="iv-was")
     with pytest.raises(ValueError, match="IV variable Z"):
         model.fit(gazoline, Y="lngca", ID="id", Time="year", D="tau")

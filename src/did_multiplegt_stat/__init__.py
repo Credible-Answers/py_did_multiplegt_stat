@@ -22,14 +22,16 @@ Quick example::
     from did_multiplegt_stat import DIDMultiplegtStat
 
     df = pd.read_stata("gazoline_did_multiplegt_stat.dta")
-    model = DIDMultiplegtStat(estimator=["aoss", "waoss"], placebo=3,
-                              aoss_vs_waoss=True)
+    model = DIDMultiplegtStat(estimator=["as", "was"], placebo=3,
+                              as_vs_was=True)
     model.fit(df, Y="lngca", ID="id", Time="year", D="tau")
     model.summary()
     model.plot()
 """
 
 from __future__ import annotations
+
+from importlib.metadata import PackageNotFoundError, version
 
 from .core import (
     cross_validation_select,
@@ -45,7 +47,10 @@ from .core import (
 from .estimator import DIDMultiplegtStat
 from .plotting import plot_by_groups, plot_comparison, plot_event_study
 
-__version__ = "0.1.0"
+try:
+    __version__ = version("did-multiplegt-stat")
+except PackageNotFoundError:  # pragma: no cover - source tree without installation
+    __version__ = "0.0.0.dev0"
 
 __all__ = [
     # Class API
